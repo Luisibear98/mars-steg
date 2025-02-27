@@ -40,8 +40,11 @@ def sweep_run(
     device_map = get_device_map()
 
     ## Standard Configs
-
-    model_config, optimizer_config, train_config, generation_config = ConfigLoader.load_config(default_config_path, overwrite_config_path)
+    if overwrite_config_path is None:
+        model_config, optimizer_config, train_config, generation_config = ConfigLoader.load_config(default_config_path)
+    else:
+        model_config, optimizer_config, train_config, generation_config = ConfigLoader.load_config(default_config_path, overwrite_config_path)
+        
     prompt_config = PromptConfig.from_file(prompt_config_path)
     generation_config.batch_size = train_config.batch_size
     experiment_args = ExperimentArgs.from_yaml(experiment_args_path)
