@@ -57,6 +57,15 @@ def sweep_run(
         gradient_accumulation_steps=train_config.gradient_accumulation_steps,
     )
 
+    wandb.config.update({
+        'ppo_config': ppo_config,
+        'model_config': model_config,
+        'optimizer_config': optimizer_config,
+        'train_config': train_config,
+        'experiment_args': experiment_args,
+        'generation_config': generation_config,
+    })
+
     train(
         ppo_config = ppo_config, 
         model_config = model_config,
