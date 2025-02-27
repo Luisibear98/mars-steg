@@ -9,7 +9,7 @@ parameters:
   learning_rate:
     values: [8e-6, 2e-6]
   batch_size:
-    values: [8, 6]
+    values: [4, 6]
   gradient_accumulation_steps:
     values: [4, 6]
   experiment_args_path:
