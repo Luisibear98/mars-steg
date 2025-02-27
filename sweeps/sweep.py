@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import Any
 import sys
 import os
+import warnings
 
 import wandb
 from trl import PPOConfig
@@ -28,7 +29,11 @@ def sweep_run(
     # TODO: Is this correct?
     experiment_args_path = wandb_config["experiment_args_path"]
     default_config_path = wandb_config["default_config_path"]
-    overwrite_config_path = wandb_config["overwrite_config_path"]
+    try:
+        overwrite_config_path = wandb_config["overwrite_config_path"]
+    except KeyError:
+        warnings.warn("overwrite_config_path has been given, setting it to None by default")
+        overwrite_config_path = None
     prompt_config_path = wandb_config["prompt_config_path"]
 
     # TODO: Update this to use set of device instead of splitting it

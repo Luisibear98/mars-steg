@@ -27,7 +27,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 import yaml
-from typing import Callable, Tuple
+from typing import Callable, List, Tuple
 from dataclasses import asdict
 from typing import Optional, Dict, Any
 
@@ -573,7 +573,7 @@ class ConfigLoader:
     """
 
     @staticmethod
-    def load_config(*yaml_files: str) -> Tuple[ModelConfig, OptimizerConfig, TrainConfig, GenerationConfig]:
+    def load_config(*yaml_files: List[str]) -> Tuple[ModelConfig, OptimizerConfig, TrainConfig, GenerationConfig]:
         """
 
         Load YAML data and map it to configuration dataclasses.
@@ -591,10 +591,11 @@ class ConfigLoader:
         """
 
         config_dict = load_yaml(yaml_files[0])
-        for overwrite_yaml in yaml_files[1:]:
-            overwrite_config_dict = load_yaml(overwrite_yaml)
-            for k in overwrite_config_dict.keys():
-                config_dict[k].update(overwrite_config_dict[k])
+        if len(yaml_files) > 1:
+            for overwrite_yaml in yaml_files[1:]:
+                overwrite_config_dict = load_yaml(overwrite_yaml)
+                for k in overwrite_config_dict.keys():
+                    config_dict[k].update(overwrite_config_dict[k])
 
         # Create instances of the dataclasses
         model_config = ModelConfig(**config_dict["Model"])
