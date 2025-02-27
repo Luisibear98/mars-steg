@@ -32,7 +32,7 @@ def sweep_run(
     try:
         overwrite_config_path = wandb_config["overwrite_config_path"]
     except KeyError:
-        warnings.warn("overwrite_config_path has been given, setting it to None by default")
+        warnings.warn("overwrite_config_path has been given, setting it to None by default !")
         overwrite_config_path = None
     prompt_config_path = wandb_config["prompt_config_path"]
 
