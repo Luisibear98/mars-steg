@@ -11,7 +11,7 @@ Model:
 Optimizer:
   optimizer_name: "adam"
   learning_rate: 5.0e-5
-  weight_decay: 0.01
+  weight_decay: 0.001
   adam_epsilon: 1e-8
   warmup_steps: 500
   max_grad_norm: 1.0
@@ -19,22 +19,22 @@ Optimizer:
 Train:
   log_with: null  # Use 'wandb' to log with wandb
   mini_batch_size: 1  # The PPO minibatch size
-  batch_size: 15 # The batch size
-  gradient_accumulation_steps: 1  # The number of gradient accumulation steps
+  batch_size: 16 # The batch size
+  gradient_accumulation_steps: 2  # The number of gradient accumulation steps
   seed: 42  # The seed for reproducibility
-  num_train_epochs: 10  # The number of training epochs
+  num_train_epochs: 5  # The number of training epochs
   num_eval_episodes: 10  # The number of evaluation episodes
   save_frequency: 100  # The frequency to save the model relative to the number of training data batches
-  ppo_epochs: 1  # The number of PPO epochs
+  ppo_epochs: 10  # The number of PPO epochs
   train_proportion : 0.95  # The proportion of the training data
   validation_proportion : 0.05  # The proportion of the validation data (out of left data after training data split)
-  number_shared_layers_for_ref_model: 30 # The number of shared layers for the reference model in PPO RLHF
-  create_ref_model: False   # Whether to create a reference model in PPO RLHF
+  number_shared_layers_for_ref_model: 0 # The number of shared layers for the reference model in PPO RLHF
+  create_ref_model: True   # Whether to create a reference model in PPO RLHF
   evaluate_cot_gap: False  # Whether to evaluate the COT gap
   # cot_gap_evaluation_number_batches_samples: 1  # The number of batches sampled for evaluating the COT gap
-  number_of_evaluations: 3  # The number of evaluations for the COT gap among epochs
-  skipping_failed_parsing_examples: False #Skip examples that failed when parsing them for task score, language score, answer extraction, CoT extrcation etc
-  run_optimization: False
+  number_of_evaluations: 0  # The number of evaluations for the COT gap among epochs
+  skipping_failed_parsing_examples: True #Skip examples that failed when parsing them for task score, language score, answer extraction, CoT extrcation etc
+  run_optimization: True
 
 Generation:
   min_length: 0

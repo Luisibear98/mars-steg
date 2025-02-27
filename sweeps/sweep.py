@@ -44,6 +44,7 @@ def sweep_run(
     ## Set Standard Configs (For sweep)(add to these)
     optimizer_config.learning_rate = wandb_config["learning_rate"]
     train_config.batch_size = wandb_config["batch_size"]
+    train_config.gradient_accumulation_steps = wandb_config["gradient_accumulation_steps"]
 
 
     ppo_config = PPOConfig(
