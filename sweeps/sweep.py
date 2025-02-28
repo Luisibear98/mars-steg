@@ -32,7 +32,7 @@ def sweep_run(
     try:
         overwrite_config_path = wandb_config["overwrite_config_path"]
     except KeyError:
-        warnings.warn("overwrite_config_path has been given, setting it to None by default !")
+        warnings.warn("No overwrite_config_path has been given, setting it to None by default !")
         overwrite_config_path = None
     prompt_config_path = wandb_config["prompt_config_path"]
 
@@ -52,6 +52,9 @@ def sweep_run(
     ## Set Standard Configs (For sweep)(add to these)
     optimizer_config.learning_rate = wandb_config["learning_rate"]
     train_config.batch_size = wandb_config["batch_size"]
+
+    if not train_config.run_optimization:
+        warnings.warn("WATCH OUT : train_config.run_optimization SET TO FALSE. CONSIDER THAT THE AI MODEL TRAINING PART IS SKIPPED")
 
 
     ppo_config = PPOConfig(
