@@ -63,7 +63,7 @@ def sweep_run(
         learning_rate=optimizer_config.learning_rate,
         log_with=train_config.log_with,
         ppo_epochs=train_config.ppo_epochs,
-        mini_batch_size=train_config.mini_batch_size,
+        # mini_batch_size=train_config.mini_batch_size,
         batch_size=train_config.batch_size,
         gradient_accumulation_steps=train_config.gradient_accumulation_steps,
     )

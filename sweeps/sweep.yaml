@@ -9,9 +9,9 @@ parameters:
   learning_rate:
     values: [8e-6, 6e-6, 2e-6]
   batch_size:
-    values: [2, 4]
+    values: [32, 64]
   gradient_accumulation_steps:
-    values: [16,1]
+    values: [16,32]
   experiment_args_path:
     values: ["experiments/b_sequential_price_game/1_collusion_with_neural_overseer.yaml"]
   default_config_path:
