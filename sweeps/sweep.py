@@ -52,6 +52,7 @@ def sweep_run(
     ## Set Standard Configs (For sweep)(add to these)
     optimizer_config.learning_rate = wandb_config["learning_rate"]
     train_config.batch_size = wandb_config["batch_size"]
+    train_config.gradient_accumulation_steps = wandb_config["gradient_accumulation_steps"]
 
     if not train_config.run_optimization:
         warnings.warn("WATCH OUT : train_config.run_optimization SET TO FALSE. CONSIDER THAT THE AI MODEL TRAINING PART IS SKIPPED")
