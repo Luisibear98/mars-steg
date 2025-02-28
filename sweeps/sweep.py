@@ -44,7 +44,7 @@ def sweep_run(
         model_config, optimizer_config, train_config, generation_config = ConfigLoader.load_config(default_config_path)
     else:
         model_config, optimizer_config, train_config, generation_config = ConfigLoader.load_config(default_config_path, overwrite_config_path)
-        
+
     prompt_config = PromptConfig.from_file(prompt_config_path)
     generation_config.batch_size = train_config.batch_size
     experiment_args = ExperimentArgs.from_yaml(experiment_args_path)
@@ -52,7 +52,6 @@ def sweep_run(
     ## Set Standard Configs (For sweep)(add to these)
     optimizer_config.learning_rate = wandb_config["learning_rate"]
     train_config.batch_size = wandb_config["batch_size"]
-    train_config.gradient_accumulation_steps = wandb_config["gradient_accumulation_steps"]
 
 
     ppo_config = PPOConfig(

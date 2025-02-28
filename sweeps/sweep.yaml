@@ -7,11 +7,9 @@ metric:
 run_cap: 36 # not sure
 parameters:
   learning_rate:
-    values: [8e-6, 2e-6]
+    values: [2e-6, 8e-6]
   batch_size:
-    values: [8, 6]
-  gradient_accumulation_steps:
-    values: [1, 2]
+    values: [4, 8]
   experiment_args_path:
     values: ["experiments/b_sequential_price_game/1_collusion_with_neural_overseer.yaml"]
   default_config_path:
