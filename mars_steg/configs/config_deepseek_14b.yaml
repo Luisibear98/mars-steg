@@ -29,7 +29,7 @@ Train:
   train_proportion : 0.95  # The proportion of the training data
   validation_proportion : 0.05  # The proportion of the validation data (out of left data after training data split)
   number_shared_layers_for_ref_model: 0 # The number of shared layers for the reference model in PPO RLHF
-  create_ref_model: True   # Whether to create a reference model in PPO RLHF
+  create_ref_model: False   # Whether to create a reference model in PPO RLHF
   evaluate_cot_gap: False  # Whether to evaluate the COT gap
   # cot_gap_evaluation_number_batches_samples: 1  # The number of batches sampled for evaluating the COT gap
   number_of_evaluations: 0  # The number of evaluations for the COT gap among epochs
