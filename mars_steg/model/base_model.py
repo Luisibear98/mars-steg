@@ -118,8 +118,8 @@ class BaseModel(metaclass=ABCMeta):
             self.model = model
         else:
             self.model = self.load_model(device)
-            
-        self.model.gradient_checkpointing_enable()
+
+        # self.model.gradient_checkpointing_enable()
 
     def load_model(self, device: str = None):
         """
