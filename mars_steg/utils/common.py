@@ -283,7 +283,7 @@ def get_optimizer(
             filter(lambda p: p.requires_grad, model.parameters()),
             lr=optimizer_config.learning_rate,
             weight_decay=optimizer_config.weight_decay,
-            epsilon= optimizer_config.adam_epsilon,
+            eps= optimizer_config.adam_epsilon,
             fused=True
         )
         return optimizer
