@@ -18,7 +18,7 @@ Optimizer:
 
 Train:
   log_with: null  # Use 'wandb' to log with wandb
-  mini_batch_size: 2  # The PPO minibatch size
+  mini_batch_size: 1  # The PPO minibatch size
   batch_size: 4 # The batch size
   gradient_accumulation_steps: 1  # The number of gradient accumulation steps
   seed: 42  # The seed for reproducibility
