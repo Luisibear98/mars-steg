@@ -5,7 +5,7 @@ from torch import nn
 import torch
 from transformers import AutoModelForCausalLM
 from typing import Optional, Dict
-from torch.optim import Adam
+from torch.optim import AdamW
 import logging
 from copy import deepcopy
 
@@ -14,7 +14,6 @@ from typing import List, Tuple
 from tqdm import tqdm
 from transformers import AutoTokenizer
 from mars_steg.config import ModelConfig, OptimizerConfig, PromptConfig, GenerationConfig
-from mars_steg.language.language_aspects.neural_overseer import ReferenceModelNeuralOverseer
 from mars_steg.utils.answer_extraction import extract_cots, extracts_no_cots, extract_floatingpoint_overseer_or_assessor_answer
 from mars_steg.utils.exceptions import LLMTranscriptExtractionError
 from mars_steg.utils.score import CoTGapSummary
@@ -250,10 +249,42 @@ def get_optimizer(
         Configured optimizer
     """
 
+    #TODO ADD AS WELL THE WARM UP SCHEDULER AND THE MAX GRAD NORM USING :
+    """
+    from torch.optim import AdamW
+
+    optimizer = AdamW(
+        model.parameters(),
+        lr=5.0e-5,                # learning_rate
+        weight_decay=0.001,       # weight_decay
+        eps=1e-8,                 # adam_epsilon
+        betas=(0.9, 0.999)        # Default AdamW betas
+    )
+
+    # Gradient clipping (max_grad_norm)
+    import torch.nn.utils as nn_utils
+
+    # Inside training loop, before optimizer.step():
+    nn_utils.clip_grad_norm_(model.parameters(), 1.0)  # max_grad_norm
+
+    # Learning rate scheduler with warmup_steps
+    from transformers import get_scheduler
+
+    scheduler = get_scheduler(
+        "linear",
+        optimizer=optimizer,
+        num_warmup_steps=500,     # warmup_steps
+        num_training_steps=total_training_steps  # You need to define this
+    )
+
+    """
     if optimizer_config.optimizer_name == "adam":
-        optimizer = Adam(
+        optimizer = AdamW(
             filter(lambda p: p.requires_grad, model.parameters()),
             lr=optimizer_config.learning_rate,
+            weight_decay=optimizer_config.weight_decay,
+            epsilon= optimizer_config.adam_epsilon,
+            fused=True
         )
         return optimizer
 
