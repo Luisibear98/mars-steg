@@ -241,6 +241,8 @@ def train(ppo_config, model_config, optimizer_config, train_config, generation_c
             if run_optimization:
                 if len(composite_reward_list) < ppo_trainer.config.batch_size:
                     ppo_trainer.config.batch_size = len(composite_reward_list)
+                    ppo_trainer.config.mini_batch_size = 1
+                    ppo_trainer.config.gradient_accumulation_steps = len(composite_reward_list)
                 stats = ppo_trainer.step(
                     train_query_tensors, train_transcript_responses, composite_reward_list,
                 )
@@ -263,6 +265,8 @@ def train(ppo_config, model_config, optimizer_config, train_config, generation_c
             # If we ran an optimization step, restore the original batch size.
             if run_optimization:
                 ppo_trainer.config.batch_size = train_config.batch_size
+                ppo_trainer.config.mini_batch_size = train_config.mini_batch_size
+                ppo_trainer.config.gradient_accumulation_steps = train_config.gradient_accumulation_steps
 
             # Log stats to wandb.
             # import pdb; pdb.set_trace(header = "2025.02.25: associate this with a epoch and batch ticker")
