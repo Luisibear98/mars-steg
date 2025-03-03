@@ -11,7 +11,7 @@ parameters:
   batch_size:
     values: [16]
   gradient_accumulation_steps:
-    values: [16]
+    values: [8]
   experiment_args_path:
     values: ["experiments/b_sequential_price_game/1_collusion_with_neural_overseer.yaml"]
   default_config_path:
