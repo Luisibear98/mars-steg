@@ -242,6 +242,12 @@ def train(ppo_config, model_config, optimizer_config, train_config, generation_c
                     ppo_trainer.config.batch_size = len(composite_reward_list)
                     ppo_trainer.config.mini_batch_size = 1
                     ppo_trainer.config.gradient_accumulation_steps = len(composite_reward_list)
+                
+                print("----------------")
+                print("Debugging")
+                print(train_query_tensors)
+                print(train_transcript_responses)
+                print("----------------")
 
                 stats = ppo_trainer.step(
                     train_query_tensors, train_transcript_responses, composite_reward_list,
