@@ -225,9 +225,8 @@ def train(ppo_config, model_config, optimizer_config, train_config, generation_c
             log_merged_batch_wandb([batch_prompt_datas], epoch = epoch, batch_in_epoch = batch_ticker)
 
             if len(composite_reward_list) == 0:
-                if train_config.skipping_failed_parsing_examples:
-                    warnings.warn("All feedbacks (get_task_score and/or get_language_score) failed to parse. Skipping the optimisation for this batch of examples")
-                    continue
+                warnings.warn("All feedbacks (get_task_score and/or get_language_score) failed to parse. Skipping the optimisation for this batch of examples")
+                continue
 
             print("--------")
             print(f"Rewarding example with {composite_reward_list}")
@@ -243,6 +242,7 @@ def train(ppo_config, model_config, optimizer_config, train_config, generation_c
                     ppo_trainer.config.batch_size = len(composite_reward_list)
                     ppo_trainer.config.mini_batch_size = 1
                     ppo_trainer.config.gradient_accumulation_steps = len(composite_reward_list)
+
                 stats = ppo_trainer.step(
                     train_query_tensors, train_transcript_responses, composite_reward_list,
                 )
