@@ -154,7 +154,7 @@ def train(ppo_config, model_config, optimizer_config, train_config, generation_c
 
             # Generate the with-CoT transcript (no-CoT transcript not needed during training)
             transcript_responses = ppo_trainer.generate(
-                [inputs["input_ids"]], **training_generation_kwargs,
+                query_tensors, **training_generation_kwargs,
             )
             decoded_responses = [
                 tokenizer.decode(r.squeeze()) for r in transcript_responses
