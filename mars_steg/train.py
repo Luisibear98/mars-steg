@@ -245,8 +245,9 @@ def train(ppo_config, model_config, optimizer_config, train_config, generation_c
                 
                 print("----------------")
                 print("Debugging")
-                print(train_query_tensors)
-                print(train_transcript_responses)
+                print(len(train_query_tensors))
+                print(len(train_transcript_responses))
+                print(len(composite_reward_list))
                 print("----------------")
 
                 stats = ppo_trainer.step(
