@@ -248,6 +248,10 @@ def train(ppo_config, model_config, optimizer_config, train_config, generation_c
                 print(len(train_query_tensors))
                 print(len(train_transcript_responses))
                 print(len(composite_reward_list))
+                print(ppo_trainer.config.batch_size)
+                print(ppo_trainer.config.mini_batch_size)
+                print(ppo_trainer.config.gradient_accumulation_steps )
+                
                 print("----------------")
 
                 stats = ppo_trainer.step(
