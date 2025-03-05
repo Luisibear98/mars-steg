@@ -1013,7 +1013,7 @@ class PPOTrainer(BaseTrainer):
 
 
         model.eval()
-        import pdb; pdb.set_trace(header="check this")
+
         
         
 
@@ -1059,6 +1059,10 @@ class PPOTrainer(BaseTrainer):
             all_values.append(values)
             all_logprobs.append(logprobs)
             all_masks.append(masks)
+        try :
+            torch.cat(all_logprobs)
+        except:
+            import pdb; pdb.set_trace(header="Failed try")
 
         return (
             torch.cat(all_logprobs),

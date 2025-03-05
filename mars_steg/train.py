@@ -253,7 +253,7 @@ def train(ppo_config, model_config, optimizer_config, train_config, generation_c
                 
                 print("----------------")
 
-                import pdb; pdb.set_trace(header="check this")
+
 
                 stats = ppo_trainer.step(
                     train_query_tensors, train_transcript_responses, composite_reward_list,
