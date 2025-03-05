@@ -336,8 +336,9 @@ def extract_cots(batch_prompt_datas: BatchPromptData, output_delimitation_tokens
         except LLMTranscriptExtractionError as e:
             if not skipping_failed_parsing_examples:
                 extracted_prompt_datas.append(prompt_data)
-
-            warnings.warn(f"Failed to parse CoT and/or final answer from main model transcript. Skipping example")
+                warnings.warn(f"Failed to parse CoT and/or final answer from main model transcript. Example added, but will be penalized")
+            else:
+                warnings.warn(f"Failed to parse CoT and/or final answer from main model transcript. Skipping example")
     return BatchPromptData(extracted_prompt_datas)
 
 def extracts_no_cots(batch_prompt_datas: BatchPromptData, output_delimitation_tokens: Dict[str, str], skipping_failed_parsing_examples: bool) -> BatchPromptData:
