@@ -26,7 +26,7 @@ import torch
 
 from transformers import set_seed
 
-from trl import PPOConfig, PPOTrainer
+from mars_steg.trl import PPOConfig, PPOTrainer
 
 from mars_steg.config import ConfigLoader, ExperimentArgs, PromptConfig
 from mars_steg.utils.common import (

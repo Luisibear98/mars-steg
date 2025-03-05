@@ -103,7 +103,7 @@ If you want to use the model for training or to obtain the outputs from the valu
 
 ```python
 from transformers import AutoTokenizer
-from trl import AutoModelForCausalLMWithValueHead
+from mars_steg.trl import AutoModelForCausalLMWithValueHead
 
 tokenizer = AutoTokenizer.from_pretrained("{model_id}")
 model = AutoModelForCausalLMWithValueHead.from_pretrained("{model_id}")

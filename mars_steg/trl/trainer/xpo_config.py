@@ -15,7 +15,7 @@
 from dataclasses import dataclass
 from typing import List, Union
 
-from trl.trainer.online_dpo_config import OnlineDPOConfig
+from mars_steg.trl.trainer.online_dpo_config import OnlineDPOConfig
 
 
 @dataclass

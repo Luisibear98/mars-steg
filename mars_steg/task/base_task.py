@@ -30,7 +30,7 @@ from mars_steg.utils.prompt_data import (
 )
 from mars_steg.model import BaseModel
 from mars_steg.utils.score import check_score
-from trl import PreTrainedModelWrapper
+from mars_steg.trl import PreTrainedModelWrapper
 from transformers import AutoTokenizer
 
 from mars_steg.task.neural_assessor import ProblemSolutionAssessor

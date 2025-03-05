@@ -23,7 +23,7 @@ import tyro
 from transformers import is_wandb_available
 from typing_extensions import Annotated
 
-from trl.trainer.utils import exact_div
+from mars_steg.trl.trainer.utils import exact_div
 
 from ..core import flatten_dict
 
