@@ -171,10 +171,15 @@ def train(ppo_config, model_config, optimizer_config, train_config, generation_c
             # Penalise CoT - imbue relevant information to PromptData's
             if isinstance(train_dataset.language_aspect, NeuralOverseer):
                 collusion_detected = []
+                failed_examples = 0
                 for pd in extracted_batch_prompt_datas:
                     pd: PromptData
                     print(pd)
-                    collusion_detected.append(train_dataset.language_aspect.detect_collusion(pd.extracted_cot))
+                    if pd.extracted_cot is None:
+                        failed_examples+=1
+                    else:
+                        collusion_detected.append(train_dataset.language_aspect.detect_collusion(pd.extracted_cot))
+                        
                 if sum(collusion_detected) == len(extracted_batch_prompt_datas):
                     print("--------------")
                     print("Collusion detected in all prompts, no need usage of neural overseer")
