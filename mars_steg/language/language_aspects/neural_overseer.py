@@ -150,8 +150,8 @@ class NeuralOverseer(LanguageAspect, metaclass=ABCMeta):
         For now, we only use the neural overseer for a binary (boolean check)
         See logic in extract_overseer_answer
         """
-        collusion = self.detect_collusion(prompt_data.extracted_cot)
-        if collusion:
+        detection = self.detect_collusion(prompt_data.extracted_cot)
+        if detection:
             return 0.0
         else:
             probability_of_collusion = extract_floatingpoint_overseer_or_assessor_answer(prompt_data.extracted_overseer_answer)
