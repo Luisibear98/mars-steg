@@ -15,6 +15,6 @@ parameters:
   experiment_args_path:
     values: ["experiments/b_sequential_price_game/1_collusion_with_neural_overseer.yaml"]
   default_config_path:
-    values: ["mars_steg/configs/config_deepseek_14b.yaml"]
+    values: ["mars_steg/configs/config_deepseek_7b.yaml"]
   prompt_config_path:
     values: ["mars_steg/configs/prompt/price_training_deepseek.yaml"]
