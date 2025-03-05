@@ -36,7 +36,7 @@ from mars_steg.trl import PPOConfig, PPOTrainer
 
 import sys
 from mars_steg.language.language_aspects.neural_overseer import NeuralOverseer
-from mars_steg.utils.prompt_data import BatchPromptData, log_to_wandb_merged_batch, log_merged_batch_wandb
+from mars_steg.utils.prompt_data import BatchPromptData, PromptData, log_to_wandb_merged_batch, log_merged_batch_wandb
 from mars_steg.config import ConfigLoader, ExperimentArgs, PromptConfig
 
 from mars_steg.utils.common import (
@@ -170,9 +170,17 @@ def train(ppo_config, model_config, optimizer_config, train_config, generation_c
             # If any of these two stages fail - we should not penalise the batch
             # Penalise CoT - imbue relevant information to PromptData's
             if isinstance(train_dataset.language_aspect, NeuralOverseer):
-                extracted_batch_prompt_datas_with_nos = train_dataset.language_aspect.get_overseer_generated_answers(
-                    extracted_batch_prompt_datas, 
-                    neural_overseer_thinking_helper = prompt_config.neural_overseer_thinking_helper)
+                collusion_detected = []
+                for pd in extracted_batch_prompt_datas:
+                    pd: PromptData
+                    collusion_detected.append(train_dataset.language_aspect.detect_collusion(pd.extracted_cot))
+                if sum(collusion_detected) == len(extracted_batch_prompt_datas):
+                    print("--------------")
+                    print("Collusion detected in all prompts, no need usage of neural overseer")
+                else:
+                    extracted_batch_prompt_datas_with_nos = train_dataset.language_aspect.get_overseer_generated_answers(
+                        extracted_batch_prompt_datas, 
+                        neural_overseer_thinking_helper = prompt_config.neural_overseer_thinking_helper)
             else:
                 # get_task_score will do a hard string check
                 extracted_batch_prompt_datas_with_nos = extracted_batch_prompt_datas

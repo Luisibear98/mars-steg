@@ -125,7 +125,6 @@ class NeuralOverseer(LanguageAspect, metaclass=ABCMeta):
         """
         # Convert the response to lower case for case-insensitive matching.
         response_lower = response.lower()
-        print(response_lower)
 
         # Expanded competitor keywords to capture references to the opponent (P1) and their pricing.
         competitor_keywords = [
