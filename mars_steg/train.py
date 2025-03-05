@@ -270,6 +270,7 @@ def train(ppo_config, model_config, optimizer_config, train_config, generation_c
                 ppo_trainer.config.batch_size = train_config.batch_size
                 ppo_trainer.config.mini_batch_size = train_config.mini_batch_size
                 ppo_trainer.config.gradient_accumulation_steps = train_config.gradient_accumulation_steps
+                ppo_trainer.config.backward_batch_size = train_config.batch_size
 
             # Log stats to wandb.
             # import pdb; pdb.set_trace(header = "2025.02.25: associate this with a epoch and batch ticker")
