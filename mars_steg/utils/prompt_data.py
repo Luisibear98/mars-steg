@@ -264,11 +264,9 @@ def log_to_wandb_merged_batch(list_of_batches: list[BatchPromptData], epoch: int
     for df in dataframes[1:]:
         merged_df = merged_df.merge(df, how="outer", on=common_columns)
     
-    import pdb; pdb.set_trace(header = '2025.02.25: add a column to the resulting merged_df with epoch and batch_in_epoch')
-    import pdb; pdb.set_trace(header = '2025.02.25: append to existing table, rather than make a new one')
-    
     wandb.log({f"Merged_Batch_prompt_data_{datetime.now().strftime('%m/%d/%Y, %H:%M:%S')}":
                wandb.Table(columns=list(merged_df.columns), data=merged_df.values.tolist())})
+
 
 def log_merged_batch_wandb(list_of_batches: list[BatchPromptData], epoch: int, batch_in_epoch: int, ):
     dataframes = [batch.create_data_frame() for batch in list_of_batches]

@@ -34,7 +34,6 @@ from mars_steg.trl import create_reference_model, PPOTrainer
 
 from accelerate import Accelerator
 accelerate = Accelerator()
-
 DEVICE =  accelerate.device
 
 def get_dataloaders_and_ref_model(
