@@ -570,8 +570,6 @@ class PPOTrainer(BaseTrainer):
             batch_mask = [torch.ones_like(element) for element in batch]
             inputs = {"input_ids": batch, "attention_mask": batch_mask}
 
-            self.current_device = "mps"
-
             padded_inputs = self.tokenizer.pad(
                 inputs,
                 padding=True,
