@@ -173,6 +173,7 @@ def train(ppo_config, model_config, optimizer_config, train_config, generation_c
                 collusion_detected = []
                 for pd in extracted_batch_prompt_datas:
                     pd: PromptData
+                    print(pd)
                     collusion_detected.append(train_dataset.language_aspect.detect_collusion(pd.extracted_cot))
                 if sum(collusion_detected) == len(extracted_batch_prompt_datas):
                     print("--------------")
