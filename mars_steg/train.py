@@ -179,11 +179,15 @@ def train(ppo_config, model_config, optimizer_config, train_config, generation_c
                         failed_examples+=1
                     else:
                         collusion_detected.append(train_dataset.language_aspect.detect_collusion(pd.extracted_cot))
-                        
-                if sum(collusion_detected) == len(extracted_batch_prompt_datas):
+
+                if sum(collusion_detected) == len(extracted_batch_prompt_datas) - num_examples_failed :
                     print("--------------")
                     print("Collusion detected in all prompts, no need usage of neural overseer")
+                    print("--------------")
                 else:
+                    print("--------------")
+                    print("Doubts on collusion, going for neural overseer")
+                    print("--------------")
                     extracted_batch_prompt_datas_with_nos = train_dataset.language_aspect.get_overseer_generated_answers(
                         extracted_batch_prompt_datas, 
                         neural_overseer_thinking_helper = prompt_config.neural_overseer_thinking_helper)
