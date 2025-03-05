@@ -32,10 +32,12 @@ from mars_steg.language import LanguageAspect
 
 from trl import create_reference_model, PPOTrainer
 
-from accelerate import Accelerator
-accelerate = Accelerator()
+# from accelerate import Accelerator
+# accelerate = Accelerator()
 
-DEVICE =  accelerate.device
+# DEVICE =  accelerate.device
+
+DEVICE = "cuda:1"
 
 def get_dataloaders_and_ref_model(
     dataset_class_name: str,
