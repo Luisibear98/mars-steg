@@ -238,22 +238,12 @@ def train(ppo_config, model_config, optimizer_config, train_config, generation_c
             # If running optimization, adjust the batch size based on the available rewards.
             if run_optimization:
                 if len(composite_reward_list) < ppo_trainer.config.batch_size:
+
+                    print('Some items failed - decreasing batch size for security - reset shortly')
+
                     ppo_trainer.config.batch_size = len(composite_reward_list)
                     ppo_trainer.config.mini_batch_size = 1
                     ppo_trainer.config.gradient_accumulation_steps = len(composite_reward_list)
-                
-                print("----------------")
-                print("Debugging")
-                print(len(train_query_tensors))
-                print(len(train_transcript_responses))
-                print(len(composite_reward_list))
-                print(ppo_trainer.config.batch_size)
-                print(ppo_trainer.config.mini_batch_size)
-                print(ppo_trainer.config.gradient_accumulation_steps )
-                
-                print("----------------")
-
-
 
                 stats = ppo_trainer.step(
                     train_query_tensors, train_transcript_responses, composite_reward_list,

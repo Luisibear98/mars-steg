@@ -744,7 +744,7 @@ class PPOTrainer(BaseTrainer):
 
         full_kl_penalty = self.config.kl_penalty == "full"
 
-        with torch.no_grad():
+        with torch.no_grad():            
             all_logprobs, logits_or_none, values, masks = self.batched_forward_pass(
                 self.model,
                 queries,
@@ -819,6 +819,7 @@ class PPOTrainer(BaseTrainer):
                     }
                     for k in model_inputs_names:
                         mini_batch_dict[k] = batch_dict[k][mini_batch_inds]
+
                     with self.accelerator.accumulate(self.model):
                         model_inputs = {k: mini_batch_dict[k] for k in model_inputs_names}
 
@@ -1011,11 +1012,12 @@ class PPOTrainer(BaseTrainer):
         all_masks = []
         all_values = []
 
-
         model.eval()
-
         
-        
+        if len(queries) == 0:
+            import pdb; pdb.set_trace()
+        else:
+            print('queries in batched_forward_pass has size!')
 
         for i in range(math.ceil(bs / fbs)):
             input_kwargs = {key: value[i * fbs : (i + 1) * fbs] for key, value in model_inputs.items()}
@@ -1059,10 +1061,6 @@ class PPOTrainer(BaseTrainer):
             all_values.append(values)
             all_logprobs.append(logprobs)
             all_masks.append(masks)
-        try :
-            torch.cat(all_logprobs)
-        except:
-            import pdb; pdb.set_trace(header="Failed try")
 
         return (
             torch.cat(all_logprobs),
