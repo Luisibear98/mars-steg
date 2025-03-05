@@ -1013,11 +1013,6 @@ class PPOTrainer(BaseTrainer):
         all_values = []
 
         model.eval()
-        
-        if len(queries) == 0:
-            import pdb; pdb.set_trace()
-        else:
-            print('queries in batched_forward_pass has size!')
 
         for i in range(math.ceil(bs / fbs)):
             input_kwargs = {key: value[i * fbs : (i + 1) * fbs] for key, value in model_inputs.items()}
