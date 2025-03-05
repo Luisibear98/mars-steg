@@ -1011,8 +1011,11 @@ class PPOTrainer(BaseTrainer):
         all_masks = []
         all_values = []
 
+        import pdb; pdb.set_trace(header='Check what needs to be checked')
+
         model.eval()
-        import pdb; pdb.set_trace(header="Check what needs to be checked")
+        
+        
 
         for i in range(math.ceil(bs / fbs)):
             input_kwargs = {key: value[i * fbs : (i + 1) * fbs] for key, value in model_inputs.items()}
