@@ -32,7 +32,7 @@ import torch
 from tqdm import tqdm
 from transformers import set_seed
 import trl
-from mars_steg.ppo_trainer import PPOConfig, PPOTrainer
+from mars_steg.utils.ppo_trainer import PPOConfig, PPOTrainer
 print(trl.__file__)
 
 import sys
