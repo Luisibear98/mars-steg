@@ -18,7 +18,7 @@ from mars_steg.utils.answer_extraction import extract_cots, extracts_no_cots, ex
 from mars_steg.utils.exceptions import LLMTranscriptExtractionError
 from mars_steg.utils.score import CoTGapSummary
 from mars_steg.model import BaseModel, GPT2Model, Llama_31_8B_Instruct, Llama_32_1B_Instruct, DeepSeek_R1_1pt5B
-from mars_steg.trl.models.modeling_base import PreTrainedModelWrapper, LAYER_PATTERNS
+from trl.models.modeling_base import PreTrainedModelWrapper, LAYER_PATTERNS
 from transformers.integrations.deepspeed import is_deepspeed_zero3_enabled
 
 from torch.utils.data import DataLoader
@@ -30,7 +30,7 @@ from mars_steg import language
 from mars_steg.task import TorchDatasetTask
 from mars_steg.language import LanguageAspect
 
-from mars_steg.trl import create_reference_model, PPOTrainer
+from trl import create_reference_model, PPOTrainer
 
 from accelerate import Accelerator
 accelerate = Accelerator()

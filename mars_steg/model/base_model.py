@@ -23,7 +23,7 @@ from transformers import (
 )
 from abc import ABCMeta, abstractmethod
 import torch
-from mars_steg.trl import AutoModelForCausalLMWithValueHead
+from trl import AutoModelForCausalLMWithValueHead
 from mars_steg.config import GenerationConfig
 import warnings
 try:

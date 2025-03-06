@@ -16,7 +16,7 @@ from mars_steg.utils.common import (
 )
 from mars_steg.train import train
 
-from mars_steg.trl import PPOConfig
+from trl import PPOConfig
 
 # wandb.login()
 wandb.init(project="MARS-STEGO")

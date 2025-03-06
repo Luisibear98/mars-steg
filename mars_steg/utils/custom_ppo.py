@@ -1,1 +1,1 @@
-from mars_steg.trl import PPOConfig, PPOTrainer
+from trl import PPOConfig, PPOTrainer

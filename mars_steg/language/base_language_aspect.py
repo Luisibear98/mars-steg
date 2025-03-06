@@ -7,7 +7,7 @@ from mars_steg.model.base_model import BaseModel
 from abc import ABCMeta, abstractmethod
 from typing import Dict
 
-from mars_steg.trl import PreTrainedModelWrapper
+from trl import PreTrainedModelWrapper
 from transformers import AutoTokenizer
 
 
