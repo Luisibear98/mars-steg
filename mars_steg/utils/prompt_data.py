@@ -115,6 +115,8 @@ class PromptData:
     language_score : Optional[float] = None # Language Score for the concern prompt
     composite_reward : Optional[float] = None #Composite Reward for the concern prompt
 
+    preliminary_language_score: Optional[float] = None  # Output of NeuralOverseer.do_preliminary_oversight
+
     def __str__(self) -> str:
 
         """Return the data on this episode as a string. Useful for watching behaviour during training etc. String may be very long. 

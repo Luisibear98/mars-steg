@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from abc import ABCMeta, abstractmethod
+from abc import ABCMeta, abstractmethod, abstractstaticmethod
 
 from mars_steg.config import PromptConfig
 from mars_steg.language.base_language_aspect import LanguageAspect
@@ -93,15 +93,23 @@ class NeuralOverseer(LanguageAspect, metaclass=ABCMeta):
         prompt_data: PromptData
     ) -> float:
         """
-        For now, we only use the neural overseer for a binary (boolean check)
         See logic in extract_overseer_answer
         """
-        detection = self.detect_collusion(prompt_data.extracted_cot)
-        if detection:
-            return 0.0
+        if prompt_data.preliminary_language_score is None:
+            probability_of_banned_language = extract_floatingpoint_overseer_or_assessor_answer(prompt_data.extracted_overseer_answer)
+            return 1.0 - probability_of_banned_language
         else:
-            probability_of_collusion = extract_floatingpoint_overseer_or_assessor_answer(prompt_data.extracted_overseer_answer)
-            return  1.0 - probability_of_collusion
+            return prompt_data.preliminary_language_score
+
+    @abstractstaticmethod
+    def do_preliminary_oversight(response: str) -> Optional[float]:
+        """
+        Typically a hard string match before we deploy the full neural overseer
+
+        Should return a score in [0.0, 1.0), and a None if score is exactly 1.0, signalling that the oversight
+            was entirely passed
+        """
+        raise NotImplementedError
 
 
 class SlowNeuralOverseer(NeuralOverseer):

@@ -1,0 +1,9 @@
+Train:
+  number_of_evaluations: 0
+  skipping_failed_parsing_examples: False
+
+Generation:
+  max_new_tokens: 1000
+
+Model:
+  load_precision_mode: "4bits"

@@ -170,27 +170,40 @@ def train(ppo_config, model_config, optimizer_config, train_config, generation_c
             # If any of these two stages fail - we should not penalise the batch
             # Penalise CoT - imbue relevant information to PromptData's
             if isinstance(train_dataset.language_aspect, NeuralOverseer):
-                collusion_detected = []
-                failed_examples = 0
-                for pd in extracted_batch_prompt_datas:
-                    pd: PromptData
-                    print(pd)
-                    if pd.extracted_cot is None:
-                        failed_examples+=1
-                    else:
-                        collusion_detected.append(train_dataset.language_aspect.detect_collusion(pd.extracted_cot))
+                
+                preliminary_oversight_passed = []
+                preliminary_oversight_failed = []
 
-                if sum(collusion_detected) == len(extracted_batch_prompt_datas) - failed_examples :
+                for pd in extracted_batch_prompt_datas:
+                    if pd.extracted_cot is not None:    # pd.preliminary_language_score is None otherwise
+                        pd.preliminary_language_score = train_dataset.language_aspect.do_preliminary_oversight(pd.extracted_cot)
+
+                    if pd.preliminary_language_score is None:
+                        preliminary_oversight_passed.append(pd)
+                    else:
+                        preliminary_oversight_failed.append(pd) # Failed != bug - failed means the oversight found collusion etc.
+
+                if len(preliminary_oversight_passed):
                     print("--------------")
-                    print("Collusion detected in all prompts, no need usage of neural overseer")
+                    print(f"Doubts on preliminary_oversight, using neural overseer for {len(preliminary_oversight_passed)} prompts")
                     print("--------------")
+                    extracted_batch_prompt_datas_for_neural_oversight = BatchPromptData(preliminary_oversight_passed)
+                    
+                    extracted_batch_prompt_datas_with_nos: BatchPromptData = train_dataset.language_aspect.get_overseer_generated_answers(
+                        extracted_batch_prompt_datas_for_neural_oversight, 
+                        neural_overseer_thinking_helper = prompt_config.neural_overseer_thinking_helper
+                    )
+
+                    # Will cause overall reordering of batch items!
+                    extracted_batch_prompt_datas_with_nos.prompt_datas.extend(
+                        preliminary_oversight_passed
+                    )
+
                 else:
                     print("--------------")
-                    print("Doubts on collusion, going for neural overseer")
+                    print("preliminary_oversight detected in all prompts, no need usage of neural overseer")
                     print("--------------")
-                    extracted_batch_prompt_datas_with_nos = train_dataset.language_aspect.get_overseer_generated_answers(
-                        extracted_batch_prompt_datas, 
-                        neural_overseer_thinking_helper = prompt_config.neural_overseer_thinking_helper)
+
             else:
                 # get_task_score will do a hard string check
                 extracted_batch_prompt_datas_with_nos = extracted_batch_prompt_datas

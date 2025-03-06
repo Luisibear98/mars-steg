@@ -97,8 +97,6 @@ class Task(metaclass=ABCMeta):
         indicating an incompatibility issue.
     """
 
-
-
     name: str
     system_prompt: str
     uses_local_neural_assessor: bool
@@ -111,8 +109,7 @@ class Task(metaclass=ABCMeta):
     ):
         self.language_aspect = language_aspect
         self.uses_local_neural_assessor = uses_local_neural_assessor
-        self.prompt_config = prompt_config  #TODO Store prompt configuration ?
-        self.prompt_config = prompt_config  #TODO Store prompt configuration ?
+        self.prompt_config = prompt_config
 
         if self.name not in language_aspect.compatible_tasks:
             raise TypeError(f"""
@@ -458,8 +455,6 @@ class Task(metaclass=ABCMeta):
         self.neural_assessor = ProblemSolutionAssessor(
             model=model, prompt_config=self.prompt_config
         )
-
-
 
 
 
