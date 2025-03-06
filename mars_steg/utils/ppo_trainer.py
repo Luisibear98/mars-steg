@@ -30,6 +30,7 @@ from datasets import Dataset
 from huggingface_hub import whoami
 from packaging import version
 from torch.optim import Adam
+import gc
 from transformers import (
     DataCollatorForLanguageModeling,
     PreTrainedTokenizer,
@@ -39,7 +40,7 @@ from transformers import (
     is_torch_xpu_available,
 )
 
-from trl.core import (
+from ..core import (
     WANDB_PADDING,
     PPODecorators,
     clip_by_value,
@@ -54,14 +55,14 @@ from trl.core import (
     stack_dicts,
     stats_to_np,
 )
-from trl.import_utils import is_torch_greater_2_0
-from trl.models import (
+from ..import_utils import is_torch_greater_2_0
+from ..models import (
     SUPPORTED_ARCHITECTURES,
     PreTrainedModelWrapper,
     create_reference_model,
     unwrap_model_for_generation,
 )
-from trl.trainer import AdaptiveKLController, BaseTrainer, FixedKLController, PPOConfig, RunningMoments
+from . import AdaptiveKLController, BaseTrainer, FixedKLController, PPOConfig, RunningMoments
 
 
 if is_deepspeed_available():
@@ -744,7 +745,7 @@ class PPOTrainer(BaseTrainer):
 
         full_kl_penalty = self.config.kl_penalty == "full"
 
-        with torch.no_grad():            
+        with torch.no_grad():
             all_logprobs, logits_or_none, values, masks = self.batched_forward_pass(
                 self.model,
                 queries,
@@ -819,10 +820,9 @@ class PPOTrainer(BaseTrainer):
                     }
                     for k in model_inputs_names:
                         mini_batch_dict[k] = batch_dict[k][mini_batch_inds]
-
                     with self.accelerator.accumulate(self.model):
                         model_inputs = {k: mini_batch_dict[k] for k in model_inputs_names}
-
+                          
                         logprobs, logits, vpreds, _ = self.batched_forward_pass(
                             self.model,
                             mini_batch_dict["queries"],
@@ -830,6 +830,11 @@ class PPOTrainer(BaseTrainer):
                             model_inputs,
                             return_logits=True,
                         )
+                        del model_inputs
+                        del mini_batch_dict["queries"]
+                        del mini_batch_dict["responses"]
+                        
+
                         train_stats = self.train_minibatch(
                             mini_batch_dict["logprobs"],
                             mini_batch_dict["values"],
@@ -840,6 +845,8 @@ class PPOTrainer(BaseTrainer):
                             mini_batch_dict["advantages"],
                             mini_batch_dict["returns"],
                         )
+                        del (mini_batch_dict,logprobs, logits, vpreds)
+                        torch.cuda.empty_cache()
                         all_stats.append(train_stats)
 
             # typically, early stopping is done at the epoch level
@@ -855,22 +862,26 @@ class PPOTrainer(BaseTrainer):
         train_stats = stack_dicts(all_stats)
 
         # reshape advantages/ratios such that they are not averaged.
-        train_stats["policy/advantages"] = torch.flatten(train_stats["policy/advantages"]).unsqueeze(0)
-        train_stats["policy/advantages"] = torch.nan_to_num(train_stats["policy/advantages"], WANDB_PADDING)
-        train_stats["policy/ratio"] = torch.flatten(train_stats["policy/ratio"]).unsqueeze(0)
+        train_stats["policy/advantages"] = torch.flatten(train_stats["policy/advantages"]).unsqueeze(0).to("cpu")
+        train_stats["policy/advantages"] = torch.nan_to_num(train_stats["policy/advantages"], WANDB_PADDING).to("cpu")
+        train_stats["policy/ratio"] = torch.flatten(train_stats["policy/ratio"]).unsqueeze(0).to("cpu")
 
         stats = self.record_step_stats(
-            scores=scores,
-            logprobs=all_logprobs,
-            ref_logprobs=ref_logprobs,
-            non_score_reward=non_score_reward,
+            scores=scores.cpu(),
+            logprobs=all_logprobs.cpu(),
+            ref_logprobs=ref_logprobs.cpu(),
+            non_score_reward=non_score_reward.cpu(),
             train_stats=train_stats,
             kl_coef=self.kl_ctl.value,
-            masks=masks,
+            masks=masks.cpu(),
             queries=queries,
             responses=responses,
-            kls=kls,
+            kls=kls.cpu(),
         )
+
+        del (all_logprobs,ref_logprobs,queries,responses)
+        torch.cuda.empty_cache()
+        gc.collect()
         # Gather/Reduce stats from all processes
         if self.is_distributed:
             stats = self.gather_stats(stats)
@@ -1013,7 +1024,7 @@ class PPOTrainer(BaseTrainer):
         all_values = []
 
         model.eval()
-
+        
         for i in range(math.ceil(bs / fbs)):
             input_kwargs = {key: value[i * fbs : (i + 1) * fbs] for key, value in model_inputs.items()}
             query_batch = queries[i * fbs : (i + 1) * fbs]
@@ -1028,6 +1039,7 @@ class PPOTrainer(BaseTrainer):
             else:
                 input_ids = input_kwargs["input_ids"]
                 attention_mask = input_kwargs["attention_mask"]
+            del input_kwargs
 
             logprobs = logprobs_from_logits(logits[:, :-1, :], input_ids[:, 1:])
             masks = torch.zeros_like(attention_mask)
@@ -1056,6 +1068,9 @@ class PPOTrainer(BaseTrainer):
             all_values.append(values)
             all_logprobs.append(logprobs)
             all_masks.append(masks)
+            del (values,logprobs,masks)
+            torch.cuda.empty_cache()
+            
 
         return (
             torch.cat(all_logprobs),
@@ -1096,10 +1111,12 @@ class PPOTrainer(BaseTrainer):
                 Dictionary of training statistics
         """
         self.model.train()
-        loss_p, loss_v, train_stats = self.loss(
+        loss, train_stats = self.loss(
             old_logprobs, values, logits, vpreds, logprobs, mask, advantages, returns
         )
-        loss = loss_p + loss_v
+
+        del old_logprobs, values, logits, vpreds, logprobs, mask, advantages, returns
+        torch.cuda.empty_cache()
         self.accelerator.backward(loss)
         if self.config.max_grad_norm is not None:
             if self.accelerator.sync_gradients:
@@ -1108,6 +1125,8 @@ class PPOTrainer(BaseTrainer):
         # we call optimizer.zero_grad() every time and let `accelerator` handle accumulation
         # see https://huggingface.co/docs/accelerate/usage_guides/gradient_accumulation#the-finished-code
         self.optimizer.zero_grad()
+        del loss
+        torch.cuda.empty_cache()
         return train_stats
 
     def compute_rewards(
@@ -1250,15 +1269,26 @@ class PPOTrainer(BaseTrainer):
             pg_loss = pg_loss * 0.0
             vf_loss = vf_loss * 0.0
             loss = loss * 0.0
+        entropy = entropy_from_logits(logits).cpu()
+        del logits
+        #masked_entropy = masked_mean(entropy, mask.cpu())
 
-        entropy = masked_mean(entropy_from_logits(logits), mask)
+        approxkl = 0.5 * masked_mean((logprobs - old_logprobs) ** 2, mask).cpu()
+        
+        policykl = masked_mean(old_logprobs - logprobs, mask).cpu()
+        del old_logprobs
+        del logprobs
 
-        approxkl = 0.5 * masked_mean((logprobs - old_logprobs) ** 2, mask)
-        policykl = masked_mean(old_logprobs - logprobs, mask)
-
-        return_mean, return_var = masked_mean(returns, mask), masked_var(returns, mask)
-        value_mean, value_var = masked_mean(values, mask), masked_var(values, mask)
-
+        return_mean, return_var = masked_mean(returns, mask), masked_var(returns, mask).cpu()
+        value_mean, value_var = masked_mean(values, mask), masked_var(values, mask).cpu()
+        del values
+        pg_loss = pg_loss.to("cpu")
+        vf_loss = vf_loss.to("cpu")
+        loss = loss.to("cpu")
+        entropy = entropy.to("cpu")
+        approxkl = approxkl.to("cpu")
+        policykl = policykl.to("cpu")
+        pg_clipfrac = pg_clipfrac.to("cpu")
         stats = dict(
             loss=dict(policy=pg_loss.detach(), value=vf_loss.detach(), total=loss.detach()),
             policy=dict(
@@ -1279,7 +1309,7 @@ class PPOTrainer(BaseTrainer):
                 var=value_var.detach(),
             ),
         )
-        return pg_loss, self.config.vf_coef * vf_loss, flatten_dict(stats)
+        return pg_loss + (self.config.vf_coef * vf_loss), flatten_dict(stats)
 
     def record_step_stats(self, kl_coef: float, **data):
         """
@@ -1342,7 +1372,7 @@ class PPOTrainer(BaseTrainer):
 
         for k, v in data["train_stats"].items():
             stats[f"ppo/{k}"] = torch.mean(v, axis=0)
-        stats["ppo/val/var_explained"] = 1 - stats["ppo/val/error"] / stats["ppo/returns/var"]
+        stats["ppo/val/var_explained"] = 1 - stats["ppo/val/error"].cpu() / stats["ppo/returns/var"].cpu()
         return stats
 
     def log_stats(

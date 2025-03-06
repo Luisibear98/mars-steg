@@ -31,8 +31,9 @@ import sys
 import torch
 from tqdm import tqdm
 from transformers import set_seed
-
-from trl import PPOConfig, PPOTrainer
+import trl
+from mars_steg.ppo_trainer import PPOConfig, PPOTrainer
+print(trl.__file__)
 
 import sys
 from mars_steg.language.language_aspects.neural_overseer import NeuralOverseer
