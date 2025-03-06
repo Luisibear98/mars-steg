@@ -40,7 +40,7 @@ from transformers import (
     is_torch_xpu_available,
 )
 
-from trl.core import (
+from core import (
     WANDB_PADDING,
     PPODecorators,
     clip_by_value,
@@ -55,18 +55,19 @@ from trl.core import (
     stack_dicts,
     stats_to_np,
 )
-from trl.import_utils import is_torch_greater_2_0
-from trl.models import (
+from ..import_utils import is_torch_greater_2_0
+from ..models import (
     SUPPORTED_ARCHITECTURES,
     PreTrainedModelWrapper,
     create_reference_model,
     unwrap_model_for_generation,
 )
-from trl.trainer import AdaptiveKLController, BaseTrainer, FixedKLController, PPOConfig, RunningMoments
+from . import AdaptiveKLController, BaseTrainer, FixedKLController, PPOConfig, RunningMoments
 
 
 if is_deepspeed_available():
     import deepspeed
+
 MODEL_CARD_TEMPLATE = """---
 license: apache-2.0
 library_name: transformers
