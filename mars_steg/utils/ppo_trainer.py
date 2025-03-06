@@ -657,6 +657,7 @@ class PPOTrainer(BaseTrainer):
         queries: List[torch.LongTensor],
         responses: List[torch.LongTensor],
         scores: List[torch.FloatTensor],
+        # local_rewards: List[torch.LongTensor],
         response_masks: Optional[List[torch.LongTensor]] = None,
     ):
         """

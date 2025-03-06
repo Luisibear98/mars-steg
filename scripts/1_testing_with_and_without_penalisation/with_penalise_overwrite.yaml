@@ -1,6 +1,7 @@
 Train:
   number_of_evaluations: 0
   skipping_failed_parsing_examples: False
+  batch_size: 128
 
 Generation:
   max_new_tokens: 1500

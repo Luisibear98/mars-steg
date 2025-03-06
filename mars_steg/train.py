@@ -159,9 +159,26 @@ def train(ppo_config, model_config, optimizer_config, train_config, generation_c
             decoded_responses = [
                 tokenizer.decode(r.squeeze()) for r in transcript_responses
             ]
+
+
             
             # extraction of answer and cot (because cot_mode = True) parts of the transcript
             batch_prompt_datas.cot_transcripts = decoded_responses
+
+            from dataclasses import asdict
+            from datetime import datetime
+            from time import sleep
+            data = []
+            members_as_dicts = [asdict(pd) for pd in batch_prompt_datas.prompt_datas]
+            columns = list(members_as_dicts[0].keys()) + ["token_ids"]
+            for i, pd_dict in enumerate(members_as_dicts):
+                pd_data = list(pd_dict.values())+ [f"{transcript_responses[i]}"]
+                data.append(pd_data)
+            wandb.log({f"Batch_prompt_data_{datetime.now().strftime('%m/%d/%Y, %H:%M:%S')}": 
+                    wandb.Table(columns=columns, data=data)})
+            
+            sleep(30)
+            exit()
 
             # Extract answer and CoT before given to neural overseer and assessor
             # If this fails - we might want to still penalise the batch
@@ -201,7 +218,7 @@ def train(ppo_config, model_config, optimizer_config, train_config, generation_c
 
                 else:
                     print("--------------")
-                    print("preliminary_oversight detected in all prompts, no need usage of neural overseer")
+                    print("Preliminary_oversight detected in all prompts, no need usage of neural overseer")
                     print("--------------")
 
             else:
