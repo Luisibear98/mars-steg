@@ -62,8 +62,7 @@ from trl.models import (
     create_reference_model,
     unwrap_model_for_generation,
 )
-from . import AdaptiveKLController, BaseTrainer, FixedKLController, PPOConfig, RunningMoments
-
+from trl.trainer import AdaptiveKLController, BaseTrainer, FixedKLController, PPOConfig, RunningMoments
 
 if is_deepspeed_available():
     import deepspeed
