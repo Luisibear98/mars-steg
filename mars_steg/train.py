@@ -173,7 +173,7 @@ def train(ppo_config, model_config, optimizer_config, train_config, generation_c
                 
                 preliminary_oversight_passed = []
                 preliminary_oversight_failed = []
-
+                extracted_batch_prompt_datas_with_nos = []    
                 for pd in extracted_batch_prompt_datas:
                     if pd.extracted_cot is not None:    # pd.preliminary_language_score is None otherwise
                         pd.preliminary_language_score = train_dataset.language_aspect.do_preliminary_oversight(pd.extracted_cot)
