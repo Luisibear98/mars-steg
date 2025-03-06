@@ -133,6 +133,8 @@ def train(ppo_config, model_config, optimizer_config, train_config, generation_c
         for batch_prompt_datas in tqdm(train_loader):
 
             batch_prompt_datas: BatchPromptData
+
+            print(len(batch_prompt_datas))
             
             batch_messages = model.batchize_conversation(
                 user_prompts= batch_prompt_datas.cot_prompts, 
