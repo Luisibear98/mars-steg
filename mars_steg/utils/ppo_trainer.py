@@ -40,7 +40,7 @@ from transformers import (
     is_torch_xpu_available,
 )
 
-from core import (
+from .core import (
     WANDB_PADDING,
     PPODecorators,
     clip_by_value,
@@ -55,8 +55,8 @@ from core import (
     stack_dicts,
     stats_to_np,
 )
-from ..import_utils import is_torch_greater_2_0
-from ..models import (
+from trl.import_utils import is_torch_greater_2_0
+from trl.models import (
     SUPPORTED_ARCHITECTURES,
     PreTrainedModelWrapper,
     create_reference_model,
