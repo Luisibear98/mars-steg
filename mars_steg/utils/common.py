@@ -1,5 +1,6 @@
 import torch as t
 import numpy as np
+import os
 import random
 from torch import nn
 import torch
@@ -7,7 +8,6 @@ from transformers import AutoModelForCausalLM
 from typing import Optional, Dict
 from torch.optim import AdamW
 import logging
-from copy import deepcopy
 
 from typing import List, Tuple
 
@@ -33,8 +33,15 @@ from mars_steg.language import LanguageAspect
 from trl import create_reference_model, PPOTrainer
 
 from accelerate import Accelerator
-accelerate = Accelerator()
-DEVICE =  accelerate.device
+accelerator = Accelerator()
+DEVICE =  accelerator.device
+
+if any(key.startswith("ACCELERATE_") for key in os.environ.keys()):
+    print("Accelerate is managing the execution.")
+    is_accelerate_used = True
+else:
+    print("No Accelerate configuration found.")
+    is_accelerate_used = False
 
 def get_dataloaders_and_ref_model(
     dataset_class_name: str,
@@ -136,11 +143,18 @@ def get_dataloaders_and_ref_model(
         print("Using local overseer")
         print(f"device {device_map['overseer']}")
         print("----------------------------")
-        ref_model_class: BaseModel = training_model.duplicate(None, device_map["overseer"], precision_override="full")
+        
+        ref_model_class: BaseModel = training_model.duplicate(
+            None, 
+            device_map["overseer"] if not is_accelerate_used else "cpu", 
+            precision_override="full")
         reference_model = ref_model_class.model
 
     elif task_class.uses_local_neural_assessor and need_reference_model:
-        ref_model_class: BaseModel = training_model.duplicate(None, device_map["assessor"], precision_override="full")
+        ref_model_class: BaseModel = training_model.duplicate(
+            None, 
+            device_map["assessor"] if not is_accelerate_used else "cpu", 
+            precision_override="full")
         reference_model = ref_model_class.model
         
     elif not language_aspect_class.uses_local_neural_overseer and need_reference_model and not is_deepspeed_zero3_enabled():
