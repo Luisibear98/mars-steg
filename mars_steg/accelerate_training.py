@@ -460,8 +460,7 @@ if __name__ == "__main__":
             )
 
             # Clear CUDA cache if needed.
-            if "cuda" in accelerator.device:
-                torch.cuda.empty_cache() 
+            torch.cuda.empty_cache() 
                 
             # Save the model every 'save_frequency' batches.
             if batch_ticker % train_config.save_frequency == 0:
