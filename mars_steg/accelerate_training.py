@@ -27,6 +27,7 @@ import warnings
 import numpy as np
 import wandb
 import sys
+import os
 
 import torch
 from tqdm import tqdm
@@ -36,7 +37,9 @@ from time import time
 
 from trl import PPOConfig, PPOTrainer
 
-import sys
+sys.path.append(os.path.abspath(""))
+
+
 from mars_steg.language.language_aspects.neural_overseer import NeuralOverseer
 from mars_steg.utils.prompt_data import BatchPromptData, log_merged_batch_wandb
 from mars_steg.config import ConfigLoader, ExperimentArgs, PromptConfig
