@@ -233,7 +233,6 @@ if __name__ == "__main__":
             print("-------------------------")
             print(f"Time taken for generation of answers:{duration_generation}")
             print("-------------------------")
-
             start_cpu_offloading = time()
             ppo_trainer.model.to("cpu")
             end_cpu_offloading = time()
@@ -275,6 +274,14 @@ if __name__ == "__main__":
                     print(f"Doubts on preliminary_oversight, using neural overseer for {len(preliminary_oversight_passed)} prompts")
                     print("--------------")
                     extracted_batch_prompt_datas_for_neural_oversight = BatchPromptData(preliminary_oversight_passed)
+
+                    # start_cpu_offloading = time()
+                    # ppo_trainer.model.to("cpu")
+                    # end_cpu_offloading = time()
+                    # duration_offloading = end_cpu_offloading - start_cpu_offloading
+                    # print("-------------------------")
+                    # print(f"Time taken for offloading main model:{duration_offloading}")
+                    # print("-------------------------")
 
                     start_cpu_loading = time()
                     train_dataset.language_aspect.whitebox_model.to(accelerator.device)
