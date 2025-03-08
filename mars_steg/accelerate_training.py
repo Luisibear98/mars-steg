@@ -232,6 +232,7 @@ if __name__ == "__main__":
             print("-------------------------")
             print(f"Time taken for generation of answers:{duration_generation}")
             print("-------------------------")
+            wandb.log({f"Generation time on device {accelerator.device}": duration_generation})
             # start_cpu_offloading = time()
             # ppo_trainer.model.to("cpu")
             # torch.cuda.empty_cache()  # Clears cached memory
@@ -424,6 +425,7 @@ if __name__ == "__main__":
                 print("-------------------------")
                 print(f"Time taken for training the main model:{duration_training}")
                 print("-------------------------")
+                wandb.log({f"Training time on device {accelerator.device}": duration_training})
             else:
                 # When skipping optimization, we can set stats to an empty dict or
                 # some placeholder information.
@@ -456,6 +458,7 @@ if __name__ == "__main__":
                     'batch_in_epoch': batch_ticker,
                     'task_score': sum(task_score_list) / len(composite_reward_list),
                     'language_score': sum(language_score_list) / len(language_score_list),
+                    'reward': sum(composite_reward_list) / len(composite_reward_list),
                 }
             )
 

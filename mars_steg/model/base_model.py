@@ -156,12 +156,15 @@ class BaseModel(metaclass=ABCMeta):
                 peft_config=lora_config,
                 torch_dtype=torch.bfloat16,
                 quantization_config=quantization_config,
+                # offload_state_dict=True
             )
         else:
             model = AutoModelForCausalLM.from_pretrained(
                 self.model_name,
                 torch_dtype=torch.bfloat16,
                 quantization_config=quantization_config,
+                # offload_state_dict=True,
+
             )
         if device is not None:
             model.to(device)
