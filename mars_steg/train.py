@@ -191,6 +191,8 @@ def train(ppo_config, model_config, optimizer_config, train_config, generation_c
                     print(f"Doubts on preliminary_oversight, using neural overseer for {len(preliminary_oversight_passed)} prompts")
                     print("--------------")
                     extracted_batch_prompt_datas_for_neural_oversight = BatchPromptData(preliminary_oversight_passed)
+
+                    
                     
                     extracted_batch_prompt_datas_with_nos: BatchPromptData = train_dataset.language_aspect.get_overseer_generated_answers(
                         extracted_batch_prompt_datas_for_neural_oversight, 
@@ -199,13 +201,14 @@ def train(ppo_config, model_config, optimizer_config, train_config, generation_c
 
                     # Will cause overall reordering of batch items!
                     extracted_batch_prompt_datas_with_nos.prompt_datas.extend(
-                        preliminary_oversight_passed
+                        preliminary_oversight_failed
                     )
 
                 else:
                     print("--------------")
                     print("Preliminary_oversight detected in all prompts, no need usage of neural overseer")
                     print("--------------")
+                    extracted_batch_prompt_datas_with_nos = BatchPromptData(preliminary_oversight_failed)
 
             else:
                 # get_task_score will do a hard string check
