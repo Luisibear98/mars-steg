@@ -300,13 +300,14 @@ if __name__ == "__main__":
 
                     # Will cause overall reordering of batch items!
                     extracted_batch_prompt_datas_with_nos.prompt_datas.extend(
-                        preliminary_oversight_passed
+                        preliminary_oversight_failed
                     )
 
                 else:
                     print("--------------")
                     print("Preliminary_oversight detected in all prompts, no need usage of neural overseer")
                     print("--------------")
+                    extracted_batch_prompt_datas_with_nos = BatchPromptData(preliminary_oversight_failed)
 
             else:
                 # get_task_score will do a hard string check
