@@ -283,7 +283,7 @@ if __name__ == "__main__":
                     # print("-------------------------")
 
                     start_cpu_loading = time()
-                    train_dataset.language_aspect.whitebox_model.to(accelerator.device)
+                    train_dataset.language_aspect.whitebox_model.model.to(accelerator.device)
                     end_cpu_loading = time()
                     duration_loading = end_cpu_loading - start_cpu_loading
                     print("-------------------------")
