@@ -232,15 +232,15 @@ if __name__ == "__main__":
             print("-------------------------")
             print(f"Time taken for generation of answers:{duration_generation}")
             print("-------------------------")
-            start_cpu_offloading = time()
-            ppo_trainer.model.to("cpu")
-            torch.cuda.empty_cache()  # Clears cached memory
-            torch.cuda.synchronize()
-            end_cpu_offloading = time()
-            duration_offloading = end_cpu_offloading - start_cpu_offloading
-            print("-------------------------")
-            print(f"Time taken for offloading main model:{duration_offloading}")
-            print("-------------------------")
+            # start_cpu_offloading = time()
+            # ppo_trainer.model.to("cpu")
+            # torch.cuda.empty_cache()  # Clears cached memory
+            # torch.cuda.synchronize()
+            # end_cpu_offloading = time()
+            # duration_offloading = end_cpu_offloading - start_cpu_offloading
+            # print("-------------------------")
+            # print(f"Time taken for offloading main model:{duration_offloading}")
+            # print("-------------------------")
 
             decoded_responses = [
                 tokenizer.decode(r.squeeze()) for r in transcript_responses
@@ -407,13 +407,13 @@ if __name__ == "__main__":
                     ppo_trainer.config.gradient_accumulation_steps = len(composite_reward_list)
                     ppo_trainer.config.backward_batch_size = len(composite_reward_list)
                 
-                start_cpu_loading = time()
-                ppo_trainer.model.to(accelerator.device)
-                end_cpu_loading = time()
-                duration_loading = end_cpu_loading - start_cpu_loading
-                print("-------------------------")
-                print(f"Time taken for loading main model:{duration_loading}")
-                print("-------------------------")
+                # start_cpu_loading = time()
+                # ppo_trainer.model.to(accelerator.device)
+                # end_cpu_loading = time()
+                # duration_loading = end_cpu_loading - start_cpu_loading
+                # print("-------------------------")
+                # print(f"Time taken for loading main model:{duration_loading}")
+                # print("-------------------------")
 
                 start_training_model = time()
                 stats = ppo_trainer.step(
