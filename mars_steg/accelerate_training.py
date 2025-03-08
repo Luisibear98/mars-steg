@@ -234,6 +234,8 @@ if __name__ == "__main__":
             print("-------------------------")
             start_cpu_offloading = time()
             ppo_trainer.model.to("cpu")
+            torch.cuda.empty_cache()  # Clears cached memory
+            torch.cuda.synchronize()
             end_cpu_offloading = time()
             duration_offloading = end_cpu_offloading - start_cpu_offloading
             print("-------------------------")
@@ -300,6 +302,8 @@ if __name__ == "__main__":
                     start_cpu_offloading = time()
                     train_dataset.language_aspect.whitebox_model.model.to("cpu")
                     train_dataset.language_aspect.whitebox_model.device = "cpu"
+                    torch.cuda.empty_cache()  # Clears cached memory
+                    torch.cuda.synchronize()
                     end_cpu_offloading = time()
                     duration_offloading = end_cpu_offloading - start_cpu_offloading
                     print("-------------------------")
