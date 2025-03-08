@@ -63,14 +63,13 @@ from mars_steg.utils.answer_extraction import extract_cots
 print(sys.argv)
 experiment_args_path = sys.argv[1]
 default_config_path = sys.argv[2]   # e.g. "mars_steg/configs/config.yaml"
-overwrite_config_path = sys.argv[3]   # e.g. "mars_steg/configs/config.yaml"
-prompt_config_path = sys.argv[4]   # e.g. "mars_steg/configs/prompt/math_training_deepseek.yaml"
+prompt_config_path = sys.argv[3]   # e.g. "mars_steg/configs/prompt/math_training_deepseek.yaml"
 
 ####################################################################################################################
 ####################################################################################################################
 
 
-model_config, optimizer_config, train_config, generation_config = ConfigLoader.load_config(default_config_path, overwrite_config_path)
+model_config, optimizer_config, train_config, generation_config = ConfigLoader.load_config(default_config_path)
 
 
 prompt_config = PromptConfig.from_file(prompt_config_path)
