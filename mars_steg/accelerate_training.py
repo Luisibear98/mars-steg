@@ -284,12 +284,12 @@ if __name__ == "__main__":
 
                     start_cpu_loading = time()
                     train_dataset.language_aspect.whitebox_model.model.to(accelerator.device)
+                    train_dataset.language_aspect.whitebox_model.device = accelerator.device
                     end_cpu_loading = time()
                     duration_loading = end_cpu_loading - start_cpu_loading
                     print("-------------------------")
                     print(f"Time taken for loading overseer model:{duration_loading}")
                     print("-------------------------")
-                    train_dataset.language_aspect.whitebox_model.device = accelerator.device
                     
                     
                     extracted_batch_prompt_datas_with_nos: BatchPromptData = train_dataset.language_aspect.get_overseer_generated_answers(
@@ -298,7 +298,7 @@ if __name__ == "__main__":
                     )
 
                     start_cpu_offloading = time()
-                    train_dataset.language_aspect.whitebox_model.to("cpu")
+                    train_dataset.language_aspect.whitebox_model.model.to("cpu")
                     train_dataset.language_aspect.whitebox_model.device = "cpu"
                     end_cpu_offloading = time()
                     duration_offloading = end_cpu_offloading - start_cpu_offloading
