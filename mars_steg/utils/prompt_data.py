@@ -245,11 +245,13 @@ class BatchPromptData:
     def create_data_frame(self):
         data = []
         members_as_dicts = [asdict(pd) for pd in self.prompt_datas]
-        columns = list(members_as_dicts[0].keys()).remove("local_penalisation")
+        for member in members_as_dicts:
+            del member["local_penalisation"]
+        columns = list(members_as_dicts[0].keys())
         
         # Populate data with values from each dictionary in members_as_dicts
         for pd_dict in members_as_dicts:
-            data.append(list(pd_dict.values())[-1])
+            data.append(list(pd_dict.values()))
         
         # Create a pandas DataFrame
         df = pd.DataFrame(data, columns=columns)
