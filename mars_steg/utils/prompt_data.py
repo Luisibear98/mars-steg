@@ -249,7 +249,7 @@ class BatchPromptData:
         
         # Populate data with values from each dictionary in members_as_dicts
         for pd_dict in members_as_dicts:
-            data.append(list(pd_dict.values()))
+            data.append(list(pd_dict.values())[-1])
         
         # Create a pandas DataFrame
         df = pd.DataFrame(data, columns=columns)
