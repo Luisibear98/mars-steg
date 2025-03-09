@@ -234,15 +234,6 @@ if __name__ == "__main__":
             print(f"Time taken for generation of answers:{duration_generation}")
             print("-------------------------")
             wandb.log({f"Generation time on device {accelerator.device}": duration_generation})
-            # start_cpu_offloading = time()
-            # ppo_trainer.model.to("cpu")
-            # torch.cuda.empty_cache()  # Clears cached memory
-            # torch.cuda.synchronize()
-            # end_cpu_offloading = time()
-            # duration_offloading = end_cpu_offloading - start_cpu_offloading
-            # print("-------------------------")
-            # print(f"Time taken for offloading main model:{duration_offloading}")
-            # print("-------------------------")
 
             decoded_responses = [
                 tokenizer.decode(r.squeeze()) for r in transcript_responses
@@ -260,35 +251,34 @@ if __name__ == "__main__":
             # Penalise CoT - imbue relevant information to PromptData's
             if isinstance(train_dataset.language_aspect, NeuralOverseer):
                 
-                preliminary_oversight_passed = []
-                preliminary_oversight_failed = []
+                preliminary_oversight_passed, preliminary_oversight_failed = [], []
                 index_failed, index_passed = [], []
                 test = []
-
                 if train_config.use_local_penalization:
                     penalization_tensors = []
                 else:
                     penalization_tensors = None
 
                 for i, pd in enumerate(extracted_batch_prompt_datas):
-                    if pd.extracted_cot is not None and train_config.use_local_penalization:    # pd.preliminary_language_score is None otherwise
-                        print(transcript_responses[i].squeeze())
-                        pd.preliminary_language_score, penalization_tensor = train_dataset.language_aspect.do_preliminary_oversight(pd.extracted_cot, transcript_responses[i].squeeze(), tokenizer)
-                        penalization_tensors.append(penalization_tensor)
-                        test.append(pd)
-                    elif pd.extracted_cot is not None: # pd.preliminary_language_score is None otherwise
-                        pd.preliminary_language_score, penalization_tensor = train_dataset.language_aspect.do_preliminary_oversight(pd.extracted_cot)
+                    if pd.extracted_cot is not None: # pd.preliminary_language_score is None otherwise
+                        if train_config.use_local_penalization:    
+                            pd.preliminary_language_score, penalization_tensor = train_dataset.language_aspect.do_preliminary_oversight(pd.extracted_cot, transcript_responses[i].squeeze(), tokenizer)
+                            penalization_tensors.append(penalization_tensor)
+                            test.append(pd)
+                        else: # pd.preliminary_language_score is None otherwise
+                            pd.preliminary_language_score, _ = train_dataset.language_aspect.do_preliminary_oversight(pd.extracted_cot)
 
-                    if pd.preliminary_language_score is None:
-                        preliminary_oversight_passed.append(pd)
-                        index_passed.append(i)
-                        
-                    else:
-                        preliminary_oversight_failed.append(pd) # Failed != bug - failed means the oversight found collusion etc.
-                        index_failed.append(i)
+                        if pd.preliminary_language_score is None:
+                            preliminary_oversight_passed.append(pd)
+                            index_passed.append(i)
+                            
+                        else:
+                            preliminary_oversight_failed.append(pd) # Failed != bug - failed means the oversight found collusion etc.
+                            index_failed.append(i)
+
                 if len(preliminary_oversight_passed):
                     print("--------------")
-                    print(f"Doubts on preliminary_oversight, using neural overseer for {len(preliminary_oversight_passed)} prompts")
+                    print(f"Doubts on preliminary_oversight, using neural overseer for {len(preliminary_oversight_passed)} prompts out of {len(preliminary_oversight_passed) + len(preliminary_oversight_failed)} prompts with CoT")
                     print("--------------")
                     extracted_batch_prompt_datas_for_neural_oversight = BatchPromptData(preliminary_oversight_passed)
                     if train_config.use_local_penalization:
@@ -296,14 +286,6 @@ if __name__ == "__main__":
                         print("Checking length of penalization_tensors")
                         print(len(penalization_tensors))
                         print("--------------")
-
-                    # start_cpu_offloading = time()
-                    # ppo_trainer.model.to("cpu")
-                    # end_cpu_offloading = time()
-                    # duration_offloading = end_cpu_offloading - start_cpu_offloading
-                    # print("-------------------------")
-                    # print(f"Time taken for offloading main model:{duration_offloading}")
-                    # print("-------------------------")
 
                     start_cpu_loading = time()
                     train_dataset.language_aspect.whitebox_model.model.to(accelerator.device)
@@ -330,9 +312,8 @@ if __name__ == "__main__":
                     print("-------------------------")
                     print(f"Time taken for offloading overseer model:{duration_offloading}")
                     print("-------------------------")
-                    correct_index = index_passed + index_failed 
 
-                    # Will cause overall reordering of batch items!
+                    correct_index = index_passed + index_failed 
                     prompts_data_with_hardstring = extracted_batch_prompt_datas_with_nos.prompt_datas + preliminary_oversight_failed
                     extracted_batch_prompt_datas_with_nos = BatchPromptData([prompts_data_with_hardstring[i] for i in correct_index])
                     print("-------------------------")
