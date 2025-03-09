@@ -681,7 +681,7 @@ class PPOTrainer(BaseTrainer):
         """
         bs = self.config.batch_size
 
-        queries, responses, scores, response_masks = self._step_safety_checker(
+        queries, responses, scores, response_masks, penalization_tensors = self._step_safety_checker(
             bs, queries, responses, scores, response_masks, penalization_tensors
         )
         scores = torch.tensor(scores, device=self.current_device)
