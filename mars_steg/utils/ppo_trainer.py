@@ -607,6 +607,7 @@ class PPOTrainer(BaseTrainer):
         responses: List[torch.LongTensor],
         scores: List[torch.FloatTensor],
         masks: Optional[List[torch.LongTensor]] = None,
+        penalization_tensors: Optional[List[torch.FloatTensor]] = None
     ):
         """
         Check if the input data is valid for training.
@@ -626,7 +627,7 @@ class PPOTrainer(BaseTrainer):
         Returns:
             `tuple`: The input processed data.
         """
-        for name, tensor_list in zip(["queries", "responses", "scores"], [queries, responses, scores]):
+        for name, tensor_list in zip(["queries", "responses", "scores", "penalization_tensors"], [queries, responses, scores, penalization_tensors]):
             if not isinstance(tensor_list, list):
                 raise ValueError(f"{name} must be a list of tensors - got {type(tensor_list)}")
             if not isinstance(tensor_list[0], torch.Tensor):
@@ -641,6 +642,7 @@ class PPOTrainer(BaseTrainer):
         responses = [tensor.to(self.current_device) for tensor in responses]
         scores = [tensor.to(self.current_device) for tensor in scores]
         masks = [tensor.to(self.current_device) for tensor in masks] if masks is not None else None
+        penalization_tensors = [tensor.to(self.current_device) for tensor in penalization_tensors] if penalization_tensors is not None else None
 
         # squeeze scores if needed
         for i, score in enumerate(scores):
@@ -649,7 +651,7 @@ class PPOTrainer(BaseTrainer):
             elif score.dim() == 1:
                 scores[i] = score.squeeze()
 
-        return queries, responses, scores, masks
+        return queries, responses, scores, masks, penalization_tensors
 
     @PPODecorators.empty_device_cache()
     def step(
@@ -659,6 +661,7 @@ class PPOTrainer(BaseTrainer):
         scores: List[torch.FloatTensor],
         # local_rewards: List[torch.LongTensor],
         response_masks: Optional[List[torch.LongTensor]] = None,
+        penalization_tensors: Optional[List[torch.FloatTensor]] = None
     ):
         """
         Run a PPO optimisation step given a list of queries, model responses, and rewards.
@@ -679,7 +682,7 @@ class PPOTrainer(BaseTrainer):
         bs = self.config.batch_size
 
         queries, responses, scores, response_masks = self._step_safety_checker(
-            bs, queries, responses, scores, response_masks
+            bs, queries, responses, scores, response_masks, penalization_tensors
         )
         scores = torch.tensor(scores, device=self.current_device)
         if self.config.use_score_scaling:
@@ -772,14 +775,14 @@ class PPOTrainer(BaseTrainer):
                 ref_full_logprobs = logprobs_from_logits(ref_logits_or_none, None, gather=False)
 
                 rewards, non_score_reward, kls = self.compute_rewards(
-                    scores, active_full_logprobs, ref_full_logprobs, masks
+                    scores, active_full_logprobs, ref_full_logprobs, masks, penalization_tensors=penalization_tensors
                 )
             else:
-                rewards, non_score_reward, kls = self.compute_rewards(scores, all_logprobs, ref_logprobs, masks)
+                rewards, non_score_reward, kls = self.compute_rewards(scores, all_logprobs, ref_logprobs, masks, penalization_tensors=penalization_tensors)
             timing["time/ppo/compute_rewards"] = time.time() - t
 
             t = time.time()
-            values, advantages, returns = self.compute_advantages(values, rewards, masks)
+            values, advantages, returns = self.compute_advantages(values, rewards, masks, penalization_tensors)
             timing["time/ppo/compute_advantages"] = time.time() - t
 
         # upcast to float32 to avoid dataset issues
@@ -1117,6 +1120,7 @@ class PPOTrainer(BaseTrainer):
         logprobs: torch.FloatTensor,
         ref_logprobs: torch.FloatTensor,
         masks: torch.LongTensor,
+        penalization_tensors: Optional[torch.FloatTensor] = None
     ):
         """
         Compute per token rewards from scores and KL-penalty.
@@ -1135,11 +1139,12 @@ class PPOTrainer(BaseTrainer):
             `torch.FloatTensor`: KL penalty, shape (`batch_size`, `response_length`)
         """
         rewards, non_score_rewards, kls = [], [], []
-        for score, logprob, ref_logprob, mask in zip(scores, logprobs, ref_logprobs, masks):
+        for score, logprob, ref_logprob, mask, penalization_tensor in zip(scores, logprobs, ref_logprobs, masks, penalization_tensors):
             # compute KL penalty (from difference in logprobs)
             kl = self._kl_penalty(logprob, ref_logprob)
             kls.append(kl)
-            non_score_reward = -self.kl_ctl.value * kl
+            penalization_tensor = F.pad(penalization_tensor, (0, len(kl) - len(penalization_tensor)), "constant", 0)
+            non_score_reward = -self.kl_ctl.value * kl + penalization_tensor
             non_score_rewards.append(non_score_reward)
             reward = non_score_reward.clone()
             last_non_masked_index = mask.nonzero()[-1]

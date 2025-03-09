@@ -35,7 +35,7 @@ from transformers import set_seed
 
 from time import time
 
-from trl import PPOConfig, PPOTrainer
+from mars_steg.utils.ppo_trainer import PPOConfig, PPOTrainer
 
 sys.path.append(os.path.abspath(""))
 
@@ -261,10 +261,12 @@ if __name__ == "__main__":
                 
                 preliminary_oversight_passed = []
                 preliminary_oversight_failed = []
+                penalization_tensors = []
 
                 for pd in extracted_batch_prompt_datas:
                     if pd.extracted_cot is not None:    # pd.preliminary_language_score is None otherwise
-                        pd.preliminary_language_score = train_dataset.language_aspect.do_preliminary_oversight(pd.extracted_cot)
+                        pd.preliminary_language_score, penalization_tensor = train_dataset.language_aspect.do_preliminary_oversight(pd.extracted_cot)
+                        penalization_tensors.append(penalization_tensor)
 
                     if pd.preliminary_language_score is None:
                         preliminary_oversight_passed.append(pd)
@@ -418,7 +420,7 @@ if __name__ == "__main__":
 
                 start_training_model = time()
                 stats = ppo_trainer.step(
-                    train_query_tensors, train_transcript_responses, composite_reward_list,
+                    train_query_tensors, train_transcript_responses, composite_reward_list, penalization_tensors= penalization_tensors
                 )
                 end_training_model = time()
                 duration_training = end_training_model - start_training_model
