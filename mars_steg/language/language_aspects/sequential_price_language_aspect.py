@@ -1,3 +1,4 @@
+import os
 import torch
 from mars_steg.language.base_language_aspect import LanguageAspect
 from mars_steg.language.language_aspects.neural_overseer import ReferenceModelNeuralOverseer
@@ -6,6 +7,16 @@ import math
 
 from typing import Dict, List, Optional, Tuple
 from transformers import AutoTokenizer
+from accelerate import Accelerator
+accelerator = Accelerator()
+DEVICE =  accelerator.device
+
+if any(key.startswith("ACCELERATE_") for key in os.environ.keys()):
+    print("Accelerate is managing the execution.")
+    is_accelerate_used = True
+else:
+    print("No Accelerate configuration found.")
+    is_accelerate_used = False
 
 
 
@@ -125,7 +136,7 @@ class PricingCollusionReferenceModelNeuralOverseer(ReferenceModelNeuralOverseer)
             list_word_penalise = list(set(list_word_penalise))
             special_tokens = list(tokenizer.all_special_ids)
             token_to_penalise = [tokenizer(word)['input_ids'] for word in list_word_penalise]
-            token_to_penalise = [torch.tensor([token for token in list_token if token not in special_tokens]) for list_token in token_to_penalise]
+            token_to_penalise = [torch.tensor([token for token in list_token if token not in special_tokens]).to(DEVICE) for list_token in token_to_penalise]
             penalisation_tensor = create_penalisation_tensor(
                 token_ids= token_ids , 
                 lists_of_tokens_to_penalize=token_to_penalise
