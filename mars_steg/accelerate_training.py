@@ -41,6 +41,7 @@ sys.path.append(os.path.abspath(""))
 
 
 from mars_steg.language.language_aspects.neural_overseer import NeuralOverseer
+from mars_steg.language.language_aspects.sequential_price_language_aspect import PricingCollusionReferenceModelNeuralOverseer
 from mars_steg.utils.prompt_data import BatchPromptData, log_merged_batch_wandb
 from mars_steg.config import ConfigLoader, ExperimentArgs, PromptConfig
 from accelerate import Accelerator
@@ -261,12 +262,18 @@ if __name__ == "__main__":
                 
                 preliminary_oversight_passed = []
                 preliminary_oversight_failed = []
-                penalization_tensors = []
 
-                for pd in extracted_batch_prompt_datas:
-                    if pd.extracted_cot is not None:    # pd.preliminary_language_score is None otherwise
-                        pd.preliminary_language_score, penalization_tensor = train_dataset.language_aspect.do_preliminary_oversight(pd.extracted_cot)
+                if train_config.use_local_penalization:
+                    penalization_tensors = []
+                else:
+                    penalization_tensors = None
+
+                for i, pd in enumerate(extracted_batch_prompt_datas):
+                    if pd.extracted_cot is not None and train_config.use_local_penalization:    # pd.preliminary_language_score is None otherwise
+                        pd.preliminary_language_score, penalization_tensor = train_dataset.language_aspect.do_preliminary_oversight(pd.extracted_cot, transcript_responses, tokenizer)
                         penalization_tensors.append(penalization_tensor)
+                    elif pd.extracted_cot is not None: # pd.preliminary_language_score is None otherwise
+                        pd.preliminary_language_score, penalization_tensor = train_dataset.language_aspect.do_preliminary_oversight(pd.extracted_cot)
 
                     if pd.preliminary_language_score is None:
                         preliminary_oversight_passed.append(pd)
@@ -278,6 +285,14 @@ if __name__ == "__main__":
                     print(f"Doubts on preliminary_oversight, using neural overseer for {len(preliminary_oversight_passed)} prompts")
                     print("--------------")
                     extracted_batch_prompt_datas_for_neural_oversight = BatchPromptData(preliminary_oversight_passed)
+                    if train_config.use_local_penalization:
+                        penalization_tensors.extend(
+                            [torch.zeros(min([len(r) for r in transcript_responses]))] * len(preliminary_oversight_passed)
+                            )
+                        print("--------------")
+                        print("Checking length of penalization_tensors")
+                        print(len(penalization_tensors))
+                        print("--------------")
 
                     # start_cpu_offloading = time()
                     # ppo_trainer.model.to("cpu")
