@@ -1,0 +1,16 @@
+numpy== 1.26.4
+datasets==3.2.0
+evaluate==0.4.3
+rouge_score==0.1.2
+scikit-learn==1.6.1
+transformers==4.47.1
+tensorboard==2.13.0
+torch
+trl
+peft==0.14.0
+bitsandbytes
+wandb
+openai==1.58.1
+py-cpuinfo
+deepspeed
+accelerate
