@@ -262,6 +262,8 @@ if __name__ == "__main__":
                 
                 preliminary_oversight_passed = []
                 preliminary_oversight_failed = []
+                index_failed, index_passed = [], []
+                test = []
 
                 if train_config.use_local_penalization:
                     penalization_tensors = []
@@ -273,23 +275,23 @@ if __name__ == "__main__":
                         print(transcript_responses[i].squeeze())
                         pd.preliminary_language_score, penalization_tensor = train_dataset.language_aspect.do_preliminary_oversight(pd.extracted_cot, transcript_responses[i].squeeze(), tokenizer)
                         penalization_tensors.append(penalization_tensor)
+                        test.append(pd)
                     elif pd.extracted_cot is not None: # pd.preliminary_language_score is None otherwise
                         pd.preliminary_language_score, penalization_tensor = train_dataset.language_aspect.do_preliminary_oversight(pd.extracted_cot)
 
                     if pd.preliminary_language_score is None:
                         preliminary_oversight_passed.append(pd)
+                        index_passed.append(i)
+                        
                     else:
                         preliminary_oversight_failed.append(pd) # Failed != bug - failed means the oversight found collusion etc.
-
+                        index_failed.append(i)
                 if len(preliminary_oversight_passed):
                     print("--------------")
                     print(f"Doubts on preliminary_oversight, using neural overseer for {len(preliminary_oversight_passed)} prompts")
                     print("--------------")
                     extracted_batch_prompt_datas_for_neural_oversight = BatchPromptData(preliminary_oversight_passed)
                     if train_config.use_local_penalization:
-                        penalization_tensors.extend(
-                            [torch.zeros(min([len(r) for r in transcript_responses]))] * len(preliminary_oversight_passed)
-                            )
                         print("--------------")
                         print("Checking length of penalization_tensors")
                         print(len(penalization_tensors))
@@ -328,11 +330,16 @@ if __name__ == "__main__":
                     print("-------------------------")
                     print(f"Time taken for offloading overseer model:{duration_offloading}")
                     print("-------------------------")
+                    correct_index = index_passed + index_failed 
 
                     # Will cause overall reordering of batch items!
-                    extracted_batch_prompt_datas_with_nos.prompt_datas.extend(
-                        preliminary_oversight_failed
-                    )
+                    prompts_data_with_hardstring = extracted_batch_prompt_datas_with_nos.prompt_datas + preliminary_oversight_failed
+                    extracted_batch_prompt_datas_with_nos = BatchPromptData([prompts_data_with_hardstring[i] for i in correct_index])
+                    print("-------------------------")
+                    print("Checking the order")
+                    assert test == extracted_batch_prompt_datas_with_nos.prompt_datas
+                    print("-------------------------")
+
 
                 else:
                     print("--------------")
