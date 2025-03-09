@@ -270,7 +270,7 @@ if __name__ == "__main__":
 
                 for i, pd in enumerate(extracted_batch_prompt_datas):
                     if pd.extracted_cot is not None and train_config.use_local_penalization:    # pd.preliminary_language_score is None otherwise
-                        pd.preliminary_language_score, penalization_tensor = train_dataset.language_aspect.do_preliminary_oversight(pd.extracted_cot, transcript_responses, tokenizer)
+                        pd.preliminary_language_score, penalization_tensor = train_dataset.language_aspect.do_preliminary_oversight(pd.extracted_cot, transcript_responses[i].squeeze(), tokenizer)
                         penalization_tensors.append(penalization_tensor)
                     elif pd.extracted_cot is not None: # pd.preliminary_language_score is None otherwise
                         pd.preliminary_language_score, penalization_tensor = train_dataset.language_aspect.do_preliminary_oversight(pd.extracted_cot)
