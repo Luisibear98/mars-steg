@@ -221,12 +221,13 @@ if __name__ == "__main__":
                 query_tensors.append(input)
 
             start_generation = time()
+
             # Generate the with-CoT transcript (no-CoT transcript not needed during training)
             transcript_responses = ppo_trainer.generate(
                 query_tensors, **training_generation_kwargs,
             )
-            end_generation = time()
 
+            end_generation = time()
             duration_generation = end_generation - start_generation
             print("-------------------------")
             print(f"Time taken for generation of answers:{duration_generation}")
@@ -236,7 +237,6 @@ if __name__ == "__main__":
             decoded_responses = [
                 tokenizer.decode(r.squeeze()) for r in transcript_responses
             ]
-
 
             # extraction of answer and cot (because cot_mode = True) parts of the transcript
             batch_prompt_datas.cot_transcripts = decoded_responses
@@ -302,6 +302,7 @@ if __name__ == "__main__":
                     print("-------------------------")
                     print(f"Time taken for offloading overseer model:{duration_offloading}")
                     print("-------------------------")
+
                     extracted_batch_prompt_datas_with_nos.prompt_datas.extend(
                         preliminary_oversight_failed
                     )
@@ -318,6 +319,7 @@ if __name__ == "__main__":
 
             # Reward final answer - imbue relevant information to PromptData's
             if train_dataset.uses_local_neural_assessor:
+
                 start_cpu_loading = time()
                 train_dataset.whitebox_model.to(accelerator.device)
                 end_cpu_loading = time()
@@ -325,10 +327,12 @@ if __name__ == "__main__":
                 print("-------------------------")
                 print(f"Time taken for loading assessor model:{duration_loading}")
                 print("-------------------------")
+
                 extracted_batch_prompt_datas_with_nos_and_na = train_dataset.neural_assessor_from_batch_prompt_data(
                     extracted_batch_prompt_datas_with_nos, 
                     from_cot_prompt = True, 
                     neural_assessor_thinking_helper = prompt_config.neural_assessor_thinking_helper)
+                
                 start_cpu_offloading = time()
                 train_dataset.whitebox_model.to("cpu")
                 end_cpu_offloading = time()
@@ -397,14 +401,6 @@ if __name__ == "__main__":
                     ppo_trainer.config.mini_batch_size = 1
                     ppo_trainer.config.gradient_accumulation_steps = len(composite_reward_list)
                     ppo_trainer.config.backward_batch_size = len(composite_reward_list)
-                
-                # start_cpu_loading = time()
-                # ppo_trainer.model.to(accelerator.device)
-                # end_cpu_loading = time()
-                # duration_loading = end_cpu_loading - start_cpu_loading
-                # print("-------------------------")
-                # print(f"Time taken for loading main model:{duration_loading}")
-                # print("-------------------------")
 
                 start_training_model = time()
                 stats = ppo_trainer.step(

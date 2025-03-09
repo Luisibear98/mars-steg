@@ -778,7 +778,9 @@ class PPOTrainer(BaseTrainer):
                     scores, active_full_logprobs, ref_full_logprobs, masks, penalization_tensors=penalization_tensors
                 )
             else:
-                rewards, non_score_reward, kls = self.compute_rewards(scores, all_logprobs, ref_logprobs, masks, penalization_tensors=penalization_tensors)
+                rewards, non_score_reward, kls = self.compute_rewards(
+                    scores, all_logprobs, ref_logprobs, masks, penalization_tensors=penalization_tensors
+                    )
             timing["time/ppo/compute_rewards"] = time.time() - t
 
             t = time.time()
@@ -1138,6 +1140,7 @@ class PPOTrainer(BaseTrainer):
             `torch.FloatTensor`: Non score rewards, shape (`batch_size`, `response_length`)
             `torch.FloatTensor`: KL penalty, shape (`batch_size`, `response_length`)
         """
+
         rewards, non_score_rewards, kls = [], [], []
         for score, logprob, ref_logprob, mask, penalization_tensor in zip(scores, logprobs, ref_logprobs, masks, penalization_tensors):
             # compute KL penalty (from difference in logprobs)
