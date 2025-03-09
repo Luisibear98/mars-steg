@@ -390,6 +390,8 @@ class TrainConfig:
         Skip examples that failed when parsing them for task score, language score, answer extraction, CoT extrcation etc
     run_optimization: bool
         Wheter to skip or not optimisation step (can be useful for debugging the overall training loop)
+    use_local_penalization: bool
+        Wheter to use local penalization on unwanted tokens
 
 
     Notes
@@ -418,6 +420,7 @@ class TrainConfig:
     number_of_evaluations: int
     skipping_failed_parsing_examples : bool
     run_optimization: bool  
+    use_local_penalization: bool
 
 @dataclass
 class GenerationConfig:
