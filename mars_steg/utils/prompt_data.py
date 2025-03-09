@@ -117,7 +117,7 @@ class PromptData:
     composite_reward : Optional[float] = None #Composite Reward for the concern prompt
 
     preliminary_language_score: Optional[float] = None  # Output of NeuralOverseer.do_preliminary_oversight
-    local_penalisation : Optional[torch.Tensor] #Tensor of bool representating the local penalisation
+    local_penalisation : Optional[torch.Tensor] = None #Tensor of bool representating the local penalisation
 
     def __str__(self) -> str:
 
