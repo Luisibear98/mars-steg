@@ -782,7 +782,7 @@ class PPOTrainer(BaseTrainer):
             timing["time/ppo/compute_rewards"] = time.time() - t
 
             t = time.time()
-            values, advantages, returns = self.compute_advantages(values, rewards, masks, penalization_tensors)
+            values, advantages, returns = self.compute_advantages(values, rewards, masks)
             timing["time/ppo/compute_advantages"] = time.time() - t
 
         # upcast to float32 to avoid dataset issues
