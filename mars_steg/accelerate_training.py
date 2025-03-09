@@ -41,7 +41,7 @@ sys.path.append(os.path.abspath(""))
 
 
 from mars_steg.language.language_aspects.neural_overseer import NeuralOverseer
-from mars_steg.utils.prompt_data import BatchPromptData, log_merged_batch_wandb
+from mars_steg.utils.prompt_data import BatchPromptData, PromptData, log_merged_batch_wandb
 from mars_steg.config import ConfigLoader, ExperimentArgs, PromptConfig
 from accelerate import Accelerator
 from mars_steg.utils.common import (
@@ -201,7 +201,7 @@ if __name__ == "__main__":
 
         for batch_prompt_datas in tqdm(train_loader):
 
-            batch_prompt_datas
+            batch_prompt_datas : BatchPromptData
             
             batch_messages = model.batchize_conversation(
                 user_prompts= batch_prompt_datas.cot_prompts, 
@@ -253,6 +253,7 @@ if __name__ == "__main__":
                 index_failed, index_passed = [], []
 
                 for i, pd in enumerate(extracted_batch_prompt_datas):
+                    pd: PromptData
                     if pd.extracted_cot is not None: # pd.preliminary_language_score is None otherwise
                         if train_config.use_local_penalization:    
                             pd.preliminary_language_score, pd.local_penalisation = train_dataset.language_aspect.do_preliminary_oversight(pd.extracted_cot, transcript_responses[i].squeeze(), tokenizer)
@@ -286,7 +287,7 @@ if __name__ == "__main__":
                     print("-------------------------")
                     
                     
-                    extracted_batch_prompt_datas_with_nos= train_dataset.language_aspect.get_overseer_generated_answers(
+                    extracted_batch_prompt_datas_with_nos: BatchPromptData = train_dataset.language_aspect.get_overseer_generated_answers(
                         extracted_batch_prompt_datas_for_neural_oversight, 
                         neural_overseer_thinking_helper = prompt_config.neural_overseer_thinking_helper
                     )
@@ -313,7 +314,7 @@ if __name__ == "__main__":
 
             else:
                 # get_task_score will do a hard string check
-                extracted_batch_prompt_datas_with_nos = extracted_batch_prompt_datas
+                extracted_batch_prompt_datas_with_nos: BatchPromptData = extracted_batch_prompt_datas
 
             # Reward final answer - imbue relevant information to PromptData's
             if train_dataset.uses_local_neural_assessor:

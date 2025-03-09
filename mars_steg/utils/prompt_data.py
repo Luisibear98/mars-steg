@@ -7,8 +7,6 @@ import pandas as pd
 import os
 import json
 from torch import Tensor as _T
-
-import torch
 import wandb
 
 
@@ -118,7 +116,7 @@ class PromptData:
     composite_reward : Optional[float] = None #Composite Reward for the concern prompt
 
     preliminary_language_score: Optional[float] = None  # Output of NeuralOverseer.do_preliminary_oversight
-    local_penalisation : Optional[torch.Tensor] = None #Tensor of bool representating the local penalisation
+    local_penalisation : Optional[_T] = None #Tensor of bool representating the local penalisation
 
     def __str__(self) -> str:
 
@@ -187,7 +185,7 @@ class BatchPromptData:
         self.task_scores : Optional[List[float]]  # Task Score list for the concern prompt 
         self.language_scores : Optional[List[float]]  # Language Score list for the concern prompt
         self.composite_rewards : Optional[List[float]]  #Composite Reward list for the concern prompt
-        self.local_penalisations : Optional[List[torch.Tensor]] #List of tensors of bool representating the local penalisation
+        self.local_penalisations : Optional[List[_T]] #List of tensors of bool representating the local penalisation
 
     def __len__(self):
         return len(self.prompt_datas)
