@@ -1144,7 +1144,7 @@ class PPOTrainer(BaseTrainer):
             kl = self._kl_penalty(logprob, ref_logprob)
             kls.append(kl)
             penalization_tensor = F.pad(penalization_tensor, (0, len(kl) - len(penalization_tensor)), "constant", 0)
-            non_score_reward = -self.kl_ctl.value * kl + penalization_tensor
+            non_score_reward = -self.kl_ctl.value * kl - penalization_tensor
             non_score_rewards.append(non_score_reward)
             reward = non_score_reward.clone()
             last_non_masked_index = mask.nonzero()[-1]
