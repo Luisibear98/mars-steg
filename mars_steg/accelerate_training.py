@@ -42,7 +42,7 @@ sys.path.append(os.path.abspath(""))
 
 from mars_steg.language.language_aspects.neural_overseer import NeuralOverseer
 from mars_steg.language.language_aspects.sequential_price_language_aspect import PricingCollusionReferenceModelNeuralOverseer
-from mars_steg.utils.prompt_data import BatchPromptData, log_merged_batch_wandb
+from mars_steg.utils.prompt_data import BatchPromptData, PromptData, log_merged_batch_wandb
 from mars_steg.config import ConfigLoader, ExperimentArgs, PromptConfig
 from accelerate import Accelerator
 from accelerate.state import AcceleratorState
@@ -253,39 +253,31 @@ if __name__ == "__main__":
                 
                 preliminary_oversight_passed, preliminary_oversight_failed = [], []
                 index_failed, index_passed = [], []
-                test = []
-                if train_config.use_local_penalization:
-                    penalization_tensors = []
-                else:
-                    penalization_tensors = None
 
                 for i, pd in enumerate(extracted_batch_prompt_datas):
+                    pd: PromptData
                     if pd.extracted_cot is not None: # pd.preliminary_language_score is None otherwise
                         if train_config.use_local_penalization:    
-                            pd.preliminary_language_score, penalization_tensor = train_dataset.language_aspect.do_preliminary_oversight(pd.extracted_cot, transcript_responses[i].squeeze(), tokenizer)
-                            penalization_tensors.append(penalization_tensor)
-                            test.append(pd)
+                            pd.preliminary_language_score, pd.local_penalisation = train_dataset.language_aspect.do_preliminary_oversight(pd.extracted_cot, transcript_responses[i].squeeze(), tokenizer)
                         else: # pd.preliminary_language_score is None otherwise
                             pd.preliminary_language_score, _ = train_dataset.language_aspect.do_preliminary_oversight(pd.extracted_cot)
+                    else:
+                        if train_config.use_local_penalization:
+                            pd.local_penalisation = torch.zeros_like(transcript_responses[i].squeeze())
 
-                        if pd.preliminary_language_score is None:
-                            preliminary_oversight_passed.append(pd)
-                            index_passed.append(i)
-                            
-                        else:
-                            preliminary_oversight_failed.append(pd) # Failed != bug - failed means the oversight found collusion etc.
-                            index_failed.append(i)
+                    if pd.preliminary_language_score is None:
+                        preliminary_oversight_passed.append(pd)
+                        index_passed.append(i)
+                        
+                    else:
+                        preliminary_oversight_failed.append(pd) # Failed != bug - failed means the oversight found collusion etc.
+                        index_failed.append(i)
 
                 if len(preliminary_oversight_passed):
                     print("--------------")
                     print(f"Doubts on preliminary_oversight, using neural overseer for {len(preliminary_oversight_passed)} prompts out of {len(preliminary_oversight_passed) + len(preliminary_oversight_failed)} prompts with CoT")
                     print("--------------")
                     extracted_batch_prompt_datas_for_neural_oversight = BatchPromptData(preliminary_oversight_passed)
-                    if train_config.use_local_penalization:
-                        print("--------------")
-                        print("Checking length of penalization_tensors")
-                        print(len(penalization_tensors))
-                        print("--------------")
 
                     start_cpu_loading = time()
                     train_dataset.language_aspect.whitebox_model.model.to(accelerator.device)
@@ -312,15 +304,9 @@ if __name__ == "__main__":
                     print("-------------------------")
                     print(f"Time taken for offloading overseer model:{duration_offloading}")
                     print("-------------------------")
-
-                    correct_index = index_passed + index_failed 
-                    prompts_data_with_hardstring = extracted_batch_prompt_datas_with_nos.prompt_datas + preliminary_oversight_failed
-                    extracted_batch_prompt_datas_with_nos = BatchPromptData([prompts_data_with_hardstring[i] for i in correct_index])
-                    print("-------------------------")
-                    print("Checking the order")
-                    assert test == extracted_batch_prompt_datas_with_nos.prompt_datas
-                    print("-------------------------")
-
+                    extracted_batch_prompt_datas_with_nos.prompt_datas.extend(
+                        preliminary_oversight_failed
+                    )
 
                 else:
                     print("--------------")
@@ -380,7 +366,7 @@ if __name__ == "__main__":
                 print("All examples parsed successfully")
 
             # Extract rewards
-            composite_reward_list, task_score_list, language_score_list, train_query_tensors, train_transcript_responses = \
+            composite_reward_list, task_score_list, language_score_list, train_query_tensors, train_transcript_responses, training_penalization_tensors = \
             get_rewards_and_training_datas(
                 batch_prompt_datas=extracted_batch_prompt_datas,
                 query_tensors=query_tensors,
@@ -424,7 +410,7 @@ if __name__ == "__main__":
 
                 start_training_model = time()
                 stats = ppo_trainer.step(
-                    train_query_tensors, train_transcript_responses, composite_reward_list, penalization_tensors= penalization_tensors
+                    train_query_tensors, train_transcript_responses, composite_reward_list, penalization_tensors= training_penalization_tensors
                 )
                 end_training_model = time()
                 duration_training = end_training_model - start_training_model

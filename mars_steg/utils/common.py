@@ -23,7 +23,7 @@ from transformers.integrations.deepspeed import is_deepspeed_zero3_enabled
 
 from torch.utils.data import DataLoader
 
-from mars_steg.utils.prompt_data import BatchPromptData
+from mars_steg.utils.prompt_data import BatchPromptData, PromptData
 
 from mars_steg import task
 from mars_steg import language
@@ -536,8 +536,10 @@ def get_rewards_and_training_datas(
     composite_reward_list, task_score_list, language_score_list = [], [], []
     train_query_tensors = []
     train_transcript_responses = []
+    training_penalization_tensors = []
 
     for i, prompt_data in tqdm(enumerate(batch_prompt_datas)):
+        prompt_data: PromptData
 
         # Original model extraction failed - penalise if required
         if None in [
@@ -568,11 +570,12 @@ def get_rewards_and_training_datas(
         language_score_list.append(language_score)
         train_query_tensors.append(query_tensors[i])
         train_transcript_responses.append(transcript_responses[i])
+        training_penalization_tensors.append(prompt_data.local_penalisation)
         prompt_data.task_score = task_score
         prompt_data.language_score = language_score
         prompt_data.composite_reward = composite_reward
 
-    return composite_reward_list, task_score_list, language_score_list, train_query_tensors, train_transcript_responses
+    return composite_reward_list, task_score_list, language_score_list, train_query_tensors, train_transcript_responses, training_penalization_tensors
 
 
 def evaluate_cot_gap_summary(
