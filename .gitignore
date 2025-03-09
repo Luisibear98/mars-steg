@@ -1,4 +1,5 @@
 .mars_steg/
+.mars_steg2/
 myenv
 wandb/
 artifacts/
