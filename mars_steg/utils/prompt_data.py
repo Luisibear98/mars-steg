@@ -144,9 +144,10 @@ class PromptData:
             f"extracted_overseer_answer: {self.extracted_overseer_answer}\n"
             f"assessor_transcript: {self.assessor_transcript}\n"
             f"extracted_assessor_answer: {self.extracted_assessor_answer}\n"
-            f"task_score {self.task_score} \n"
-            f"language_score {self.language_score} \n"
-            f"composite_reward {self.composite_reward} \n"
+            f"task_score: {self.task_score} \n"
+            f"language_score: {self.language_score} \n"
+            f"composite_reward: {self.composite_reward} \n"
+            f"local_penalisation: {self.local_penalisation} \n"
         )
 
 
