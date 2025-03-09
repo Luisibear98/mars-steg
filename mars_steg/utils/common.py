@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import torch as t
 import numpy as np
 import os

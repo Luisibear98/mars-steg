@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import os
 import torch
 from mars_steg.language.base_language_aspect import LanguageAspect
