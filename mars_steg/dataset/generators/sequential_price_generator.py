@@ -230,7 +230,7 @@ if __name__ == '__main__':
     game_config = GameConfig(
         minimum_margin=1,
         maximum_margin=15,
-        bid_direction_skew=0.5,
+        bid_direction_skew=0.9,
         seed=42
     )
     generator = SequentialPriceGameGenerator(game_config)
