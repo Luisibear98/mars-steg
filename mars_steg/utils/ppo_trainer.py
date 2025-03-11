@@ -661,7 +661,8 @@ class PPOTrainer(BaseTrainer):
         scores: List[torch.FloatTensor],
         # local_rewards: List[torch.LongTensor],
         response_masks: Optional[List[torch.LongTensor]] = None,
-        penalization_tensors: Optional[List[torch.FloatTensor]] = None
+        penalization_tensors: Optional[List[torch.FloatTensor]] = None,
+        tokeniser: Optional[PreTrainedTokenizer] = None
     ):
         """
         Run a PPO optimisation step given a list of queries, model responses, and rewards.
@@ -717,6 +718,12 @@ class PPOTrainer(BaseTrainer):
         t = time.time()
 
         model_inputs = self.prepare_model_inputs(queries, responses)
+
+        if penalization_tensors is not None:
+            penalization_tensors = [F.pad(penalization_tensor, (len(queries[i]), 0), "constant", 0.0) for i, penalization_tensor in enumerate(penalization_tensors)]
+            assert [len(penalization_tensor) for penalization_tensor in penalization_tensors] == [len(model_inputs["input_ids"][i]) for i in range(len(model_inputs["input_ids"]))]
+            example_dict = [(tokeniser.decode(model_inputs["input_ids"][0][i]), penalization_tensors[0][i].item()) for i in range(len(queries[0]),len(model_inputs["input_ids"][0]))]
+            print(example_dict)
 
         if self.is_distributed:
             pad_first = self.tokenizer.padding_side == "left"

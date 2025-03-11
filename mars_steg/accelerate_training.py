@@ -250,7 +250,6 @@ if __name__ == "__main__":
             if isinstance(train_dataset.language_aspect, NeuralOverseer):
                 
                 preliminary_oversight_passed, preliminary_oversight_failed = [], []
-                index_failed, index_passed = [], []
 
                 for i, pd in enumerate(extracted_batch_prompt_datas):
                     pd: PromptData
@@ -265,11 +264,9 @@ if __name__ == "__main__":
 
                     if pd.preliminary_language_score is None:
                         preliminary_oversight_passed.append(pd)
-                        index_passed.append(i)
                         
                     else:
                         preliminary_oversight_failed.append(pd) # Failed != bug - failed means the oversight found collusion etc.
-                        index_failed.append(i)
 
                 if len(preliminary_oversight_passed):
                     print("--------------")
