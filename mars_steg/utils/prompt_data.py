@@ -259,18 +259,24 @@ class BatchPromptData:
         return df
 
 
-def log_to_wandb_merged_batch(list_of_batches: list[BatchPromptData], epoch: int, batch_in_epoch: int, ):
+def log_merged_batch_wandb(list_of_batches: list[BatchPromptData], epoch: int, batch_in_epoch: int, ):
     dataframes = [batch.create_data_frame() for batch in list_of_batches]
     merged_df = dataframes[0]
     common_columns = list(dataframes[0].columns)
     for df in dataframes[1:]:
         merged_df = merged_df.merge(df, how="outer", on=common_columns)
+
+    # Add timestamp, epoch, and batch_in_epoch columns
+    timestamp = datetime.now().strftime('%m/%d/%Y, %H:%M:%S')
+    merged_df['timestamp'] = timestamp
+    merged_df['epoch'] = epoch
+    merged_df['batch_in_epoch'] = batch_in_epoch
     
-    wandb.log({f"Merged_Batch_prompt_data_{datetime.now().strftime('%m/%d/%Y, %H:%M:%S')}":
+    wandb.log({f"Merged_Batch_prompt_data_epoch_{epoch}_batch_{batch_in_epoch}":
                wandb.Table(columns=list(merged_df.columns), data=merged_df.values.tolist())})
 
 
-def log_merged_batch_wandb(list_of_batches: list[BatchPromptData], epoch: int, batch_in_epoch: int, ):
+def log_merged_batch_wandb_not_working(list_of_batches: list[BatchPromptData], epoch: int, batch_in_epoch: int, ):
     dataframes = [batch.create_data_frame() for batch in list_of_batches]
     merged_df = dataframes[0]
     common_columns = list(dataframes[0].columns)
