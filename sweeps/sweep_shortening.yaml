@@ -1,0 +1,20 @@
+program: sweeps/sweep_shortening.py
+method: grid
+#TODO: Need to update this
+metric:
+  goal: maximize
+  name: composite_reward
+run_cap: 36 # not sure
+parameters:
+  learning_rate:
+    values: [1e-6, 4e-6, 8e-6]
+  batch_size:
+    values: [8]
+  gradient_accumulation_steps:
+    values: [4]
+  experiment_args_path:
+    values: ["experiments/c_length_penalisation/1_collusion.yaml"]
+  default_config_path:
+    values: ["mars_steg/configs/config_deepseek_1pt5b.yaml"]
+  prompt_config_path:
+    values: ["mars_steg/configs/prompt/price_training_deepseek.yaml"]

@@ -37,7 +37,7 @@ print(trl.__file__)
 
 import sys
 from mars_steg.language.language_aspects.neural_overseer import NeuralOverseer
-from mars_steg.utils.prompt_data import BatchPromptData, PromptData, log_to_wandb_merged_batch, log_merged_batch_wandb
+from mars_steg.utils.prompt_data import BatchPromptData, log_merged_batch_wandb
 from mars_steg.config import ConfigLoader, ExperimentArgs, PromptConfig
 
 from mars_steg.utils.common import (
