@@ -545,7 +545,6 @@ def get_rewards_and_training_datas(
             except (LLMTranscriptExtractionError, ValueError, TypeError):
                 continue
 
-
         composite_reward_list.append(t.tensor(composite_reward))
         task_score_list.append(task_score)
         language_score_list.append(language_score)

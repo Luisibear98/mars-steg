@@ -10,6 +10,8 @@ from typing import Dict
 from trl import PreTrainedModelWrapper
 from transformers import AutoTokenizer
 
+import math
+
 
 class LanguageAspect(metaclass=ABCMeta):
     """
@@ -65,4 +67,16 @@ class EmptyLanguageAspect(LanguageAspect):
 
     def get_language_score(self, prompt_data: PromptData) -> float:
         return 0.0
+
+
+class CoTLengthPenalisation(LanguageAspect):
+    """
+    The second simplest 
+    """
+    compatible_tasks = {'SequentialPriceTask'}
+
+    def get_language_score(self, prompt_data: PromptData) -> float:
+        return 1.0 - math.tanh(
+            len(prompt_data.extracted_cot) / 2000.0 # Arbitrary scaling
+        )
 

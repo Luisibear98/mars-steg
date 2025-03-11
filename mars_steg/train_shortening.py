@@ -1,10 +1,13 @@
 """
-Module Name: train.py
+Module Name: train_shortening.py
 ------------------------
 
 
 Description:
 ------------
+
+Created 11.03.2025
+Simplified training script for the LanguageTask == ShortReasoning
 
 The core file used to train an LLM to perform steganography on a task.
 Configs are loaded to set up the training environment, and the model is given a task to perform.
@@ -22,6 +25,7 @@ See Also:
 - mars_steg.language
 """
 
+
 from __future__ import annotations
 import warnings
 import numpy as np
@@ -31,13 +35,12 @@ import sys
 import torch
 from tqdm import tqdm
 from transformers import set_seed
-import trl
-from mars_steg.utils.ppo_trainer import PPOConfig, PPOTrainer
-print(trl.__file__)
+
+from trl import PPOConfig, PPOTrainer
 
 import sys
-from mars_steg.language.language_aspects.neural_overseer import NeuralOverseer
-from mars_steg.utils.prompt_data import BatchPromptData, PromptData, log_to_wandb_merged_batch, log_merged_batch_wandb
+from mars_steg.language.base_language_aspect import CoTLengthPenalisation
+from mars_steg.utils.prompt_data import BatchPromptData, log_merged_batch_wandb
 from mars_steg.config import ConfigLoader, ExperimentArgs, PromptConfig
 
 from mars_steg.utils.common import (
@@ -57,7 +60,6 @@ def train(ppo_config, model_config, optimizer_config, train_config, generation_c
     # Set random seed for reproducibility
     set_seed(ppo_config.seed)
 
-
     output_delimitation_tokens = {
         "start_scratchpad_token": prompt_config.start_scratchpad_token,
         "end_scratchpad_token": prompt_config.end_scratchpad_token,
@@ -68,6 +70,7 @@ def train(ppo_config, model_config, optimizer_config, train_config, generation_c
 
     tokenizer = get_tokenizer(model_config.model_name)
     generation_config.pad_token_id = tokenizer.eos_token_id 
+
     #TODO Resolve the problem of the model looping on final answer
     generation_config.eos_token_id = tokenizer.eos_token_id 
     model = get_model(model_config, tokenizer, output_delimitation_tokens, generation_config, device_map["main_model"])
@@ -100,8 +103,13 @@ def train(ppo_config, model_config, optimizer_config, train_config, generation_c
         optimizer=optimizer,
     )
 
-    epochs_to_evaluate_list = np.linspace(0, train_config.num_train_epochs-1, train_config.number_of_evaluations)
-    epochs_to_evaluate_list = [int(epoch) for epoch in epochs_to_evaluate_list]
+
+    assert train_config.number_of_evaluations == 0, \
+        "train_shortening.py is intended for train_config.number_of_evaluations == 0"
+
+    assert isinstance(train_dataset.language_aspect, CoTLengthPenalisation), \
+        "train_shortening.py is intended to only be used for the LanaguageAspect subclass CoTLengthPenalisation"
+
 
     for epoch in range(train_config.num_train_epochs):
 
@@ -109,32 +117,10 @@ def train(ppo_config, model_config, optimizer_config, train_config, generation_c
 
         batch_ticker = 0
 
-        if train_config.evaluate_cot_gap and (epoch in epochs_to_evaluate_list):
-
-            print("--------")
-            print("CoT Gap Evaluation")
-            print("--------")
-
-            cot_gap, cot_ratio = evaluate_cot_gap_summary(
-                ppo_trainer = ppo_trainer, 
-                tokenizer = tokenizer, 
-                dataloader = val_loader, 
-                system_prompt = val_dataset.system_prompt,
-                model_class = model, 
-                device = device_map["main_model"], 
-                output_delimitation_tokens= model.output_delimitation_tokens,
-            )
-
-            wandb.log({"CoT Gap": cot_gap, "CoT Ratio": cot_ratio})
-
-            if len(epochs_to_evaluate_list) > 0:
-                epoch_to_evaluate = epochs_to_evaluate_list.pop(0)
-
-
         for batch_prompt_datas in tqdm(train_loader):
 
             batch_prompt_datas: BatchPromptData
-            
+
             batch_messages = model.batchize_conversation(
                 user_prompts= batch_prompt_datas.cot_prompts, 
                 system_prompt=train_dataset.system_prompt,
@@ -160,7 +146,8 @@ def train(ppo_config, model_config, optimizer_config, train_config, generation_c
             decoded_responses = [
                 tokenizer.decode(r.squeeze()) for r in transcript_responses
             ]
-            
+
+
             # extraction of answer and cot (because cot_mode = True) parts of the transcript
             batch_prompt_datas.cot_transcripts = decoded_responses
 
@@ -168,63 +155,10 @@ def train(ppo_config, model_config, optimizer_config, train_config, generation_c
             # If this fails - we might want to still penalise the batch
             extracted_batch_prompt_datas = extract_cots(batch_prompt_datas, model.output_delimitation_tokens, train_config.skipping_failed_parsing_examples)
 
-            # If any of these two stages fail - we should not penalise the batch
-            # Penalise CoT - imbue relevant information to PromptData's
-            if isinstance(train_dataset.language_aspect, NeuralOverseer):
-                
-                preliminary_oversight_passed = []
-                preliminary_oversight_failed = []
-                extracted_batch_prompt_datas_with_nos = []    
-                for pd in extracted_batch_prompt_datas:
-                    if pd.extracted_cot is not None:    # pd.preliminary_language_score is None otherwise
-                        pd.preliminary_language_score = train_dataset.language_aspect.do_preliminary_oversight(pd.extracted_cot)
-
-                    if pd.preliminary_language_score is None:
-                        preliminary_oversight_passed.append(pd)
-                    else:
-                        preliminary_oversight_failed.append(pd) # Failed != bug - failed means the oversight found collusion etc.
-
-                if len(preliminary_oversight_passed):
-                    print("--------------")
-                    print(f"Doubts on preliminary_oversight, using neural overseer for {len(preliminary_oversight_passed)} prompts")
-                    print("--------------")
-                    extracted_batch_prompt_datas_for_neural_oversight = BatchPromptData(preliminary_oversight_passed)
-                    
-                    extracted_batch_prompt_datas_with_nos: BatchPromptData = train_dataset.language_aspect.get_overseer_generated_answers(
-                        extracted_batch_prompt_datas_for_neural_oversight, 
-                        neural_overseer_thinking_helper = prompt_config.neural_overseer_thinking_helper
-                    )
-
-                    # Will cause overall reordering of batch items!
-                    extracted_batch_prompt_datas_with_nos.prompt_datas.extend(
-                        preliminary_oversight_failed
-                    )
-
-                else:
-                    print("--------------")
-                    print("preliminary_oversight detected in all prompts, no need usage of neural overseer")
-                    print("--------------")
-                    extracted_batch_prompt_datas_with_nos = BatchPromptData(preliminary_oversight_failed)
-
-            else:
-                # get_task_score will do a hard string check
-                extracted_batch_prompt_datas_with_nos = extracted_batch_prompt_datas
-
-            # Reward final answer - imbue relevant information to PromptData's
-            if train_dataset.uses_local_neural_assessor:
-                extracted_batch_prompt_datas_with_nos_and_na = train_dataset.neural_assessor_from_batch_prompt_data(
-                    extracted_batch_prompt_datas_with_nos, 
-                    from_cot_prompt = True, 
-                    neural_assessor_thinking_helper = prompt_config.neural_assessor_thinking_helper)
-            else:
-                # get_language_score will do a hard string check
-                extracted_batch_prompt_datas_with_nos_and_na = extracted_batch_prompt_datas_with_nos
-
-            
-            # batch_prompt_datas.log_to_wandb()
+           
 
             # After all that answer/CoT extraction, it might have completely failed, so we can skip everything below entirely
-            if len(extracted_batch_prompt_datas_with_nos_and_na) == 0:
+            if len(extracted_batch_prompt_datas) == 0:
                 if train_config.skipping_failed_parsing_examples:
                     warnings.warn("All examples failed to parse by neural assessor and/or overseer. Skipping the optimisation for this batch of examples")
                     continue
@@ -233,8 +167,8 @@ def train(ppo_config, model_config, optimizer_config, train_config, generation_c
 
 
             # Might have partially failed...
-            elif len(extracted_batch_prompt_datas_with_nos_and_na) != len(batch_prompt_datas):
-                num_examples_failed = len(decoded_responses) - len(extracted_batch_prompt_datas_with_nos_and_na)
+            elif len(extracted_batch_prompt_datas) != len(batch_prompt_datas):
+                num_examples_failed = len(decoded_responses) - len(extracted_batch_prompt_datas)
                 warnings.warn(
                     f"Failed to parse {num_examples_failed} examples out of {len(decoded_responses)}"
                 )
@@ -242,6 +176,9 @@ def train(ppo_config, model_config, optimizer_config, train_config, generation_c
             # Might have completely worked!
             else:
                 print("All examples parsed successfully")
+
+
+
 
             # Extract rewards
             composite_reward_list, task_score_list, language_score_list, train_query_tensors, train_transcript_responses = \
