@@ -11,7 +11,7 @@ parameters:
   batch_size:
     values: [16]
   gradient_accumulation_steps:
-    values: [8]
+    values: [2]
   experiment_args_path:
     values: ["experiments/c_length_penalisation/1_collusion.yaml"]
   default_config_path:
