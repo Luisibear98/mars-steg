@@ -73,7 +73,13 @@ class CoTLengthPenalisation(LanguageAspect):
     """
     The second simplest 
     """
+
+    uses_local_neural_overseer = False
+
     compatible_tasks = {'SequentialPriceTask'}
+
+    def __init__(self, **kwargs):
+        super().__init__()
 
     def get_language_score(self, prompt_data: PromptData) -> float:
         return 1.0 - math.tanh(
