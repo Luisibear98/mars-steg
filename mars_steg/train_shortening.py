@@ -49,8 +49,7 @@ from mars_steg.utils.common import (
     get_tokenizer,
     get_model,
     get_device_map,
-    get_rewards_and_training_datas,
-    evaluate_cot_gap_summary
+    get_rewards_and_training_datas
 )
 
 from mars_steg.utils.answer_extraction import extract_cots
@@ -153,7 +152,8 @@ def train(ppo_config, model_config, optimizer_config, train_config, generation_c
             # Extract answer and CoT before given to neural overseer and assessor
             # If this fails - we might want to still penalise the batch
             extracted_batch_prompt_datas = extract_cots(batch_prompt_datas, model.output_delimitation_tokens, train_config.skipping_failed_parsing_examples)
-
+            extracted_cot_token_ids = tokenizer(extracted_batch_prompt_datas.extracted_cots)["input_ids"]
+            extracted_batch_prompt_datas.extracted_cot_token_lengths = [len(extracted_cot_token_id) for extracted_cot_token_id in extracted_cot_token_ids]
            
 
             # After all that answer/CoT extraction, it might have completely failed, so we can skip everything below entirely
@@ -175,9 +175,6 @@ def train(ppo_config, model_config, optimizer_config, train_config, generation_c
             # Might have completely worked!
             else:
                 print("All examples parsed successfully")
-
-
-
 
             # Extract rewards
             composite_reward_list, task_score_list, language_score_list, train_query_tensors, train_transcript_responses = \
@@ -249,6 +246,7 @@ def train(ppo_config, model_config, optimizer_config, train_config, generation_c
                 {   
                     'epoch': epoch,
                     'batch_in_epoch': batch_ticker,
+                    'mean_cot_token_length': sum(extracted_batch_prompt_datas.extracted_cot_token_lengths)/ len(extracted_batch_prompt_datas.extracted_cot_token_lengths),
                     'task_score': sum(task_score_list) / len(composite_reward_list),
                     'language_score': sum(language_score_list) / len(language_score_list),
                 }

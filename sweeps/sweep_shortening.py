@@ -51,6 +51,13 @@ def sweep_run(
     generation_config.batch_size = train_config.batch_size
     experiment_args = ExperimentArgs.from_yaml(experiment_args_path)
 
+    if experiment_args.penalisation_class_kwargs["max_new_tokens"] != generation_config.max_new_tokens:
+        raise ValueError(f"""
+            You need to setup experiment_args.penalisation_class_kwargs['max_new_tokens'] equals to generation_config.max_new_tokens. 
+            Here experiment_args.penalisation_class_kwargs['max_new_tokens'] = {experiment_args.penalisation_class_kwargs['max_new_tokens']}
+            generation_config.max_new_tokens = {generation_config.max_new_tokens}
+            """)
+
     ## Set Standard Configs (For sweep)(add to these)
     optimizer_config.learning_rate = wandb_config["learning_rate"]
     train_config.batch_size = wandb_config["batch_size"]

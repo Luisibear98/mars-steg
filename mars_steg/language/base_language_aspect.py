@@ -79,10 +79,11 @@ class CoTLengthPenalisation(LanguageAspect):
     compatible_tasks = {'SequentialPriceTask'}
 
     def __init__(self, **kwargs):
-        super().__init__()
+        super().__init__(**kwargs)
+        self.max_new_token = kwargs["max_new_token"]
 
     def get_language_score(self, prompt_data: PromptData) -> float:
-        return 1.0 - math.tanh(
-            len(prompt_data.extracted_cot) / 2000.0 # Arbitrary scaling
-        )
+        ratio = abs((len(prompt_data.extracted_cot_token_length)-self.max_new_token))/self.max_new_token
+        penalization_cot_length = math.tanh(2 * ratio) # tanh(2) approx 0.964027
+        return 1.0 - penalization_cot_length
 

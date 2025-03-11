@@ -100,6 +100,7 @@ class PromptData:
 
     # After (TODO) separates answers into cot and response
     extracted_cot: Optional[str] = None
+    extracted_cot_token_length: Optional[int] = None
     extracted_final_answer_with_cot: Optional[str] = None
     extracted_final_answer_without_cot: Optional[str] = None
 
@@ -135,6 +136,7 @@ class PromptData:
             f"no_cot_transcript: {self.no_cot_transcript}\n"
             f"overseer_transcript: {self.overseer_transcript}\n"
             f"extracted_cot: {self.extracted_cot}\n"
+            f"extracted_cot_token_length: {self.extracted_cot_token_length}\n"
             f"extracted_final_answer_with_cot: {self.extracted_final_answer_with_cot}\n"
             f"extracted_final_answer_without_cot: {self.extracted_final_answer_without_cot}\n"
             f"overseer_transcript: {self.overseer_transcript}\n"
@@ -169,6 +171,7 @@ class BatchPromptData:
         self.overseer_transcript: Optional[List[str]]
 
         self.extracted_cots: Optional[List[str]] 
+        self.extracted_cot_token_lengths: Optional[List[int]] 
         self.extracted_final_answer_with_cots: Optional[List[str]] 
         self.extracted_final_answer_without_cots: Optional[List[str]] 
         
