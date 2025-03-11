@@ -11,7 +11,7 @@ from typing import Optional
 class GameConfig:
     minimum_margin: float = 1
     maximum_margin: float = 15
-    bid_direction_skew: float = 0.5 # probability of p1_bid being higher than p2_true_cost
+    bid_direction_skew: float = 0.9 # probability of p1_bid being higher than p2_true_cost
     seed: int = 42
 
 @dataclass
