@@ -248,7 +248,7 @@ def train(ppo_config, model_config, optimizer_config, train_config, generation_c
                 {   
                     'epoch': epoch,
                     'batch_in_epoch': batch_ticker,
-                    'mean_cot_token_length': sum(extracted_batch_prompt_datas.extracted_cot_token_lengths)/ len(extracted_batch_prompt_datas.extracted_cot_token_lengths),
+                    'mean_cot_token_length': batch_prompt_datas.mean_length_cot(),
                     'task_score': sum(task_score_list) / len(composite_reward_list),
                     'language_score': sum(language_score_list) / len(language_score_list),
                 }

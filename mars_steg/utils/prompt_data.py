@@ -209,6 +209,13 @@ class BatchPromptData:
     def index(self, prompt_data: PromptData):
         return self.prompt_datas.index(prompt_data)
     
+    def sum_length_cot(self) -> int:
+        return sum([cot_length for cot_length in self.extracted_cot_token_lengths if cot_length is not None])
+    
+    def mean_length_cot(self) -> float:
+        temp = [cot_length for cot_length in self.extracted_cot_token_lengths if cot_length is not None]
+        return sum(temp)/len(temp)
+    
     def __setattr__(self, name, value):
         if name == "prompt_datas":
             super().__setattr__(name, value)
