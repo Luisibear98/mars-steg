@@ -152,8 +152,10 @@ def train(ppo_config, model_config, optimizer_config, train_config, generation_c
             # Extract answer and CoT before given to neural overseer and assessor
             # If this fails - we might want to still penalise the batch
             extracted_batch_prompt_datas = extract_cots(batch_prompt_datas, model.output_delimitation_tokens, train_config.skipping_failed_parsing_examples)
-            extracted_cot_token_ids = tokenizer(extracted_batch_prompt_datas.extracted_cots)["input_ids"]
-            extracted_batch_prompt_datas.extracted_cot_token_lengths = [len(extracted_cot_token_id) for extracted_cot_token_id in extracted_cot_token_ids]
+            extracted_batch_prompt_datas.extracted_cot_token_lengths = [
+                len(tokenizer(extracted_cot, add_special_tokens=False)["input_ids"]) if extracted_cot is not None else None 
+                for extracted_cot in extracted_batch_prompt_datas.extracted_cots
+            ]
            
 
             # After all that answer/CoT extraction, it might have completely failed, so we can skip everything below entirely
