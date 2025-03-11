@@ -1,14 +1,9 @@
-import re
 from typing import Set
 
 from mars_steg.utils.prompt_data import PromptData
 from mars_steg.model.base_model import BaseModel
 
 from abc import ABCMeta, abstractmethod
-from typing import Dict
-
-from trl import PreTrainedModelWrapper
-from transformers import AutoTokenizer
 
 import math
 
@@ -79,10 +74,10 @@ class CoTLengthPenalisation(LanguageAspect):
     compatible_tasks = {'SequentialPriceTask'}
 
     def __init__(self, **kwargs):
-        self.max_new_token = kwargs["max_new_tokens"]
+        self.max_new_tokens_threshold = kwargs["max_new_tokens_threshold"]
 
     def get_language_score(self, prompt_data: PromptData) -> float:
-        ratio = abs((len(prompt_data.extracted_cot_token_length)-self.max_new_token))/self.max_new_token
+        ratio = abs((len(prompt_data.extracted_cot_token_length)-self.max_new_tokens_threshold))/self.max_new_tokens_threshold
         penalization_cot_length = math.tanh(2 * ratio) # tanh(2) approx 0.964027
         return 1.0 - penalization_cot_length
 
