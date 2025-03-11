@@ -15,6 +15,6 @@ parameters:
   experiment_args_path:
     values: ["experiments/c_length_penalisation/1_collusion.yaml"]
   default_config_path:
-    values: ["mars_steg/configs/config_deepseek_1pt5b.yaml"]
+    values: ["mars_steg/configs/config_deepseek_14b.yaml"]
   prompt_config_path:
     values: ["mars_steg/configs/prompt/price_training_deepseek.yaml"]
