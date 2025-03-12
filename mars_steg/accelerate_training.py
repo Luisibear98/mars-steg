@@ -371,7 +371,8 @@ if __name__ == "__main__":
                 query_tensors=query_tensors,
                 transcript_responses=transcript_responses, 
                 train_dataset=train_dataset,
-                skipping_failed_parsing_examples = train_config.skipping_failed_parsing_examples
+                skipping_failed_parsing_examples = train_config.skipping_failed_parsing_examples,
+                use_temporal_penalization=train_config.use_temporal_penalization
             )
 
             log_merged_batch_wandb([batch_prompt_datas], epoch = epoch, batch_in_epoch = batch_ticker)
