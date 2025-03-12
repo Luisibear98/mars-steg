@@ -188,6 +188,12 @@ def train(ppo_config, model_config, optimizer_config, train_config, generation_c
                 skipping_failed_parsing_examples = train_config.skipping_failed_parsing_examples
             )
 
+            if sum(composite_reward_list)/len(composite_reward_list) >= train_config.curriculum_threshold:
+                train_dataset.language_aspect.max_new_tokens_threshold = (
+                    train_dataset.language_aspect.max_new_tokens_threshold (1 - train_config.max_lentgh_decreasing_rate)
+                )
+
+
             # import pdb; pdb.set_trace(header = '2025.02.25: check that batch_prompt_datas contains the rewards!')
             #log_to_wandb_merged_batch([batch_prompt_datas], epoch = epoch, batch_in_epoch = batch_ticker)
             log_merged_batch_wandb([batch_prompt_datas], epoch = epoch, batch_in_epoch = batch_ticker)

@@ -418,6 +418,8 @@ class TrainConfig:
     number_of_evaluations: int
     skipping_failed_parsing_examples : bool
     run_optimization: bool  
+    curriculum_threshold: float
+    max_lentgh_decreasing_rate: float 
 
 @dataclass
 class GenerationConfig:
