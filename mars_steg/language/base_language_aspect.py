@@ -77,7 +77,7 @@ class CoTLengthPenalisation(LanguageAspect):
         self.max_new_tokens_threshold = kwargs["max_new_tokens_threshold"]
 
     def get_language_score(self, prompt_data: PromptData) -> float:
-        ratio = len(prompt_data.extracted_cot_token_length)/self.max_new_tokens_threshold
+        ratio = prompt_data.extracted_cot_token_length/self.max_new_tokens_threshold
         penalization_cot_length = math.tanh(2 * ratio) # tanh(2) approx 0.964027
         return 1.0 - penalization_cot_length
 
