@@ -282,11 +282,13 @@ if __name__ == "__main__":
     experiment_args_path = sys.argv[1]
     default_config_path = sys.argv[2]   # e.g. "mars_steg/configs/config.yaml"
     try:
+        prompt_config_path = sys.argv[4]
         overwrite_config_path = sys.argv[3]
-    except KeyError:
+    except IndexError:
         warnings.warn("No overwrite_config_path has been given, setting it to None by default !")
         overwrite_config_path = None  # e.g. "mars_steg/configs/config.yaml"
-    prompt_config_path = sys.argv[4]   # e.g. "mars_steg/configs/prompt/math_training_deepseek.yaml"
+        prompt_config_path = sys.argv[3]
+       # e.g. "mars_steg/configs/prompt/math_training_deepseek.yaml"
 
 
     device_map = get_device_map()
