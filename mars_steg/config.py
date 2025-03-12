@@ -420,6 +420,9 @@ class TrainConfig:
     run_optimization: bool  
     curriculum_threshold: float
     max_length_decreasing_rate: float 
+    is_peft_model: bool # Wheter we are using peft model
+    init_kl_coef: float #float value to initiate the kl coef (constant for adap_kl_ctrl: False or init value for adaptative KL otherwise)
+    adap_kl_ctrl: bool # wheter to use a constant or adaptative KL control
 
 @dataclass
 class GenerationConfig:

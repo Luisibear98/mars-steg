@@ -71,6 +71,9 @@ def sweep_run(
         mini_batch_size=train_config.mini_batch_size,
         batch_size=train_config.batch_size,
         gradient_accumulation_steps=train_config.gradient_accumulation_steps,
+        is_peft_model=train_config.is_peft_model,
+        init_kl_coef=train_config.init_kl_coef,
+        adap_kl_ctrl=train_config.adap_kl_ctrl,
     )
 
     wandb.config.update({
