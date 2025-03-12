@@ -9,9 +9,11 @@ parameters:
   learning_rate:
     values: [1e-6, 4e-6, 8e-6]
   batch_size:
-    values: [16]
+    values: [2]
   gradient_accumulation_steps:
     values: [2]
+  mini_batch_size:
+    values: [1]
   experiment_args_path:
     values: ["experiments/c_length_penalisation/1_collusion.yaml"]
   default_config_path:
