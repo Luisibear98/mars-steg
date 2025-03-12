@@ -281,7 +281,11 @@ if __name__ == "__main__":
     print(sys.argv)
     experiment_args_path = sys.argv[1]
     default_config_path = sys.argv[2]   # e.g. "mars_steg/configs/config.yaml"
-    overwrite_config_path = sys.argv[3]   # e.g. "mars_steg/configs/config.yaml"
+    try:
+        overwrite_config_path = sys.argv[3]
+    except KeyError:
+        warnings.warn("No overwrite_config_path has been given, setting it to None by default !")
+        overwrite_config_path = None  # e.g. "mars_steg/configs/config.yaml"
     prompt_config_path = sys.argv[4]   # e.g. "mars_steg/configs/prompt/math_training_deepseek.yaml"
 
 
@@ -291,8 +295,10 @@ if __name__ == "__main__":
     # GET CONFIGS 
     ####################################################################################################################
 
-
-    model_config, optimizer_config, train_config, generation_config = ConfigLoader.load_config(default_config_path, overwrite_config_path)
+    if overwrite_config_path is None:
+        model_config, optimizer_config, train_config, generation_config = ConfigLoader.load_config(default_config_path)
+    else:
+        model_config, optimizer_config, train_config, generation_config = ConfigLoader.load_config(default_config_path, overwrite_config_path)
 
     prompt_config = PromptConfig.from_file(prompt_config_path)
 
@@ -306,6 +312,9 @@ if __name__ == "__main__":
         mini_batch_size=train_config.mini_batch_size,
         batch_size=train_config.batch_size,
         gradient_accumulation_steps=train_config.gradient_accumulation_steps,
+        is_peft_model=train_config.is_peft_model,
+        init_kl_coef=train_config.init_kl_coef,
+        adap_kl_ctrl=train_config.adap_kl_ctrl,
     )
 
 
@@ -324,6 +333,7 @@ if __name__ == "__main__":
             'optimizer_config': optimizer_config,
             'train_config': train_config,
             'experiment_args': experiment_args,
+            'generation_config': generation_config,
         }
     )
 

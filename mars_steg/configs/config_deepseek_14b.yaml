@@ -10,7 +10,7 @@ Model:
 
 Optimizer:
   optimizer_name: "adam"
-  learning_rate: 5.0e-5
+  learning_rate: 4e-6
   weight_decay: 0.001
   adam_epsilon: 1.0e-8
   warmup_steps: 500
@@ -18,9 +18,9 @@ Optimizer:
 
 Train:
   log_with: null  # Use 'wandb' to log with wandb
-  mini_batch_size: 1  # The PPO minibatch size
-  batch_size: 4 # The batch size
-  gradient_accumulation_steps: 1  # The number of gradient accumulation steps
+  mini_batch_size: 2  # The PPO minibatch size
+  batch_size: 8 # The batch size
+  gradient_accumulation_steps: 4  # The number of gradient accumulation steps
   seed: 42  # The seed for reproducibility
   num_train_epochs: 5  # The number of training epochs
   num_eval_episodes: 10  # The number of evaluation episodes
@@ -36,7 +36,7 @@ Train:
   skipping_failed_parsing_examples: False #Skip examples that failed when parsing them for task score, language score, answer extraction, CoT extrcation etc
   run_optimization: True
   curriculum_threshold : 0.8 # Threshold indicating whether to decrease max_token_length when using c_length_penalisation
-  max_length_decreasing_rate: 0.3 #Rate of decreasing max_token_length when using c_length_penalisation
+  max_length_decreasing_rate: 0.1 #Rate of decreasing max_token_length when using c_length_penalisation
   is_peft_model: True # Wheter we are using peft model
   init_kl_coef: 0.05 #float value to initiate the kl coef (constant for adap_kl_ctrl: False or init value for adaptative KL otherwise)
   adap_kl_ctrl: False # wheter to use a constant or adaptative KL control
