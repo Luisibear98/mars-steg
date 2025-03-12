@@ -35,7 +35,7 @@ Train:
   number_of_evaluations: 0  # The number of evaluations for the COT gap among epochs
   skipping_failed_parsing_examples: False #Skip examples that failed when parsing them for task score, language score, answer extraction, CoT extrcation etc
   run_optimization: True
-  use_local_penalization: True #Wheter to use local penalization on unwanted tokens
+  use_temporal_penalization: True #Wheter to use local penalization on unwanted tokens
 
 Generation:
   min_length: 0

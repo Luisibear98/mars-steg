@@ -254,12 +254,12 @@ if __name__ == "__main__":
                 for i, pd in enumerate(extracted_batch_prompt_datas):
                     pd: PromptData
                     if pd.extracted_cot is not None: # pd.preliminary_language_score is None otherwise
-                        if train_config.use_local_penalization:    
+                        if train_config.use_temporal_penalization:    
                             pd.preliminary_language_score, pd.local_penalisation = train_dataset.language_aspect.do_preliminary_oversight(pd.extracted_cot, transcript_responses[i].squeeze(), tokenizer)
                         else: # pd.preliminary_language_score is None otherwise
                             pd.preliminary_language_score, _ = train_dataset.language_aspect.do_preliminary_oversight(pd.extracted_cot)
                     else:
-                        if train_config.use_local_penalization:
+                        if train_config.use_temporal_penalization:
                             pd.local_penalisation = torch.zeros_like(transcript_responses[i].squeeze())
 
                     if pd.preliminary_language_score is None:

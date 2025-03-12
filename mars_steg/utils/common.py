@@ -494,6 +494,7 @@ def get_rewards_and_training_datas(
         transcript_responses: List[t.TensorType], 
         train_dataset: TorchDatasetTask,
         skipping_failed_parsing_examples: Optional[bool] = True,
+        use_temporal_penalization: Optional[bool] = True,
         ) -> Tuple[List]:
     
     """
@@ -517,6 +518,8 @@ def get_rewards_and_training_datas(
         The Task subclass describing the task the model is solving; in this case specifically that for the train dataset. 
     skipping_failed_parsing_examples: bool
         Skip examples that failed when parsing them for task score, language score, answer extraction, CoT extraction etc
+    use_temporal_penalization: bool
+       Wether to use temporal penalisation for specific tokens
 
 
     Returns
@@ -538,7 +541,10 @@ def get_rewards_and_training_datas(
     composite_reward_list, task_score_list, language_score_list = [], [], []
     train_query_tensors = []
     train_transcript_responses = []
-    training_penalization_tensors = []
+    if use_temporal_penalization:
+        training_penalization_tensors = []
+    else:
+        training_penalization_tensors = None
 
     for i, prompt_data in tqdm(enumerate(batch_prompt_datas)):
         prompt_data: PromptData
@@ -572,7 +578,8 @@ def get_rewards_and_training_datas(
         language_score_list.append(language_score)
         train_query_tensors.append(query_tensors[i])
         train_transcript_responses.append(transcript_responses[i])
-        training_penalization_tensors.append(prompt_data.local_penalisation)
+        if use_temporal_penalization:
+            training_penalization_tensors.append(prompt_data.local_penalisation)
         prompt_data.task_score = task_score
         prompt_data.language_score = language_score
         prompt_data.composite_reward = composite_reward
