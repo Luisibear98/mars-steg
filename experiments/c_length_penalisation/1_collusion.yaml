@@ -4,5 +4,5 @@ dataset_class_kwargs:
   dataset: mars_steg/dataset/sequential_price_game.csv
   uses_local_neural_assessor: false
 penalisation_class_kwargs:
-  max_new_tokens_threshold: 300
+  max_new_tokens_threshold: 600
   

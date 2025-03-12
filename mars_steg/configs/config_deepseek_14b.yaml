@@ -36,7 +36,7 @@ Train:
   skipping_failed_parsing_examples: False #Skip examples that failed when parsing them for task score, language score, answer extraction, CoT extrcation etc
   run_optimization: True
   curriculum_threshold : 0.8 # Threshold indicating whether to decrease max_token_length when using c_length_penalisation
-  max_lentgh_decreasing_rate: 0.3 #Rate of decreasing max_token_length when using c_length_penalisation
+  max_length_decreasing_rate: 0.3 #Rate of decreasing max_token_length when using c_length_penalisation
 
 Generation:
   min_length: 0

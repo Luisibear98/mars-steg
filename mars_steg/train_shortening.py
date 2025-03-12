@@ -190,8 +190,13 @@ def train(ppo_config, model_config, optimizer_config, train_config, generation_c
 
             if sum(composite_reward_list)/len(composite_reward_list) >= train_config.curriculum_threshold:
                 train_dataset.language_aspect.max_new_tokens_threshold = (
-                    train_dataset.language_aspect.max_new_tokens_threshold (1 - train_config.max_lentgh_decreasing_rate)
+                    train_dataset.language_aspect.max_new_tokens_threshold * (1 - train_config.max_length_decreasing_rate)
                 )
+                print("--------------------------------")
+                print(f"Decreasing Max token Length of {train_config.max_length_decreasing_rate}")
+                print(f"Current max token length : {train_dataset.language_aspect.max_new_tokens_threshold}")
+                print("--------------------------------")
+
 
 
             # import pdb; pdb.set_trace(header = '2025.02.25: check that batch_prompt_datas contains the rewards!')
