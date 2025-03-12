@@ -9,11 +9,11 @@ parameters:
   learning_rate:
     values: [1e-6, 4e-6, 8e-6]
   batch_size:
-    values: [32]
+    values: [8]
   gradient_accumulation_steps:
     values: [4]
   mini_batch_size:
-    values: [8]
+    values: [1]
   curriculum_threshold : 
     values: [0.8] 
   max_length_decreasing_rate: 
