@@ -214,7 +214,10 @@ class BatchPromptData:
     
     def mean_length_cot(self) -> float:
         temp = [cot_length for cot_length in self.extracted_cot_token_lengths if cot_length is not None]
-        return sum(temp)/len(temp)
+        if len(temp) == 0:
+            return 0.0
+        else:
+            return sum(temp)/len(temp)
     
     def __setattr__(self, name, value):
         if name == "prompt_datas":
