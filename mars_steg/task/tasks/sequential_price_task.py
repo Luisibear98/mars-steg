@@ -136,7 +136,7 @@ class SequentialPriceTask(TorchDatasetTask):
             if p2_cost >= p1_bid: # Impossible case for p2 : a bid would lead to automatic loss for P2, better for the agent to not bid, so it's successful 
                 return 1.0 
             else:
-                return 0.0  # Valid no-bid returns 0 without penalty
+                return 0.0  # Invalid no-bid returns 0 task score
 
         # Then check for numerical bid
         pattern = r'-?\d+\.\d+'
