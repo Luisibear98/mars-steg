@@ -261,7 +261,7 @@ class PPOTrainer(BaseTrainer):
             if self.is_peft_model
             else nullcontext
         )
-
+        
         if not (isinstance(tokenizer, PreTrainedTokenizer) or isinstance(tokenizer, PreTrainedTokenizerFast)):
             raise ValueError(
                 "tokenizer must be a transformers.PreTrainedTokenizer or transformers.PreTrainedTokenizerFast"
@@ -540,6 +540,81 @@ class PPOTrainer(BaseTrainer):
             return response, ref_response
         return response
 
+    def generate_no_lora(
+        self,
+        query_tensor: Union[torch.Tensor, List[torch.Tensor]],
+        length_sampler: Optional[Callable] = None,
+        batch_size: int = 4,
+        return_prompt: bool = True,
+        generate_ref_response: bool = False,
+        **generation_kwargs,
+    ):
+        """
+        Generate response with the model given the query tensor.
+        call the `generate` method of the model.
+
+        Args:
+            query_tensor (`torch.LongTensor`):
+                A tensor of shape (`seq_len`) containing query tokens or a list of tensors of shape (`seq_len`).
+            length_sampler (`Callable`, *optional*):
+                Callable that returns the number of newly generated tokens.
+            batch_size (`int`, *optional):
+                Batch size used for generation, defaults to `4`.
+            return_prompt (`bool`, *optional*):
+                If set to `False` the prompt is not returned but only the newly generated tokens, defaults to `True`.
+            generate_ref_response (`bool`, *optional*):
+                If set to `True` the reference response is also generated, defaults to `False`.
+            generation_kwargs (dict[str, Any]):
+                Keyword arguments for generation.
+
+        Returns:
+            `torch.LongTensor`: A tensor of shape (`batch_size`, `gen_len`) containing response tokens.
+        """
+
+
+        if isinstance(query_tensor, List):
+            with self.optional_peft_ctx():
+                response = self._generate_batched(
+                self.model,
+                query_tensor,
+                length_sampler=length_sampler,
+                batch_size=batch_size,
+                return_prompt=return_prompt,
+                **generation_kwargs,
+            )
+
+
+            
+
+        else:
+            if len(query_tensor.shape) == 2:
+                raise ValueError(
+                    "query_tensor must be a tensor of shape (`seq_len`) or a list of tensors of shape (`seq_len`)"
+                )
+
+            if length_sampler is not None:
+                generation_kwargs["max_new_tokens"] = length_sampler()
+        
+            with unwrap_model_for_generation(self.model, self.accelerator) as unwrapped_model:
+                response = unwrapped_model.generate(input_ids=query_tensor.unsqueeze(dim=0), **generation_kwargs)
+
+            if generate_ref_response:
+                with unwrap_model_for_generation(
+                    ref_model, self.accelerator, is_peft_model=self.is_peft_model
+                ) as unwrapped_model:
+                    ref_response = unwrapped_model.generate(
+                        input_ids=query_tensor.unsqueeze(dim=0), **generation_kwargs
+                    )
+
+            if not return_prompt and not self.is_encoder_decoder:
+                response = response[:, query_tensor.shape[0] :]
+                if generate_ref_response:
+                    ref_response = ref_response[:, query_tensor.shape[0] :]
+
+        if generate_ref_response:
+            return response, ref_response
+        return response
+
     def _generate_batched(
         self,
         model: PreTrainedModelWrapper,
@@ -742,7 +817,7 @@ class PPOTrainer(BaseTrainer):
             )
 
             with self.optional_peft_ctx():
-                print("running ref model")
+
                 ref_logprobs, ref_logits_or_none, _, _ = self.batched_forward_pass(
                     self.model if self.is_peft_model else self.ref_model,
                     queries,
@@ -753,14 +828,12 @@ class PPOTrainer(BaseTrainer):
 
 
         if full_kl_penalty:
-            print("running ref full_kl_penalty")
             active_full_logprobs = selective_log_softmax(logits_or_none, None, gather=False)
             ref_full_logprobs = selective_log_softmax(ref_logits_or_none, None, gather=False)
             rewards, non_score_reward, kls = self.compute_rewards(
                 scores, active_full_logprobs, ref_full_logprobs, masks
             )
         else:
-            print("running compute rewards")
             rewards, non_score_reward, kls = self.compute_rewards(
                 scores, all_logprobs, ref_logprobs, masks
             )
@@ -825,9 +898,7 @@ class PPOTrainer(BaseTrainer):
                         )
 
                         # Clean up mini-batch input variables.
-                        del model_inputs_batch
-                        del mini_batch_dict["queries"]
-                        del mini_batch_dict["responses"]
+                        del (model_inputs_batch, mini_batch_dict["queries"],mini_batch_dict["responses"])
 
                         train_stats = self.train_minibatch(
                             batch_dict["logprobs"][mini_batch_inds].to(self.accelerator.device),
@@ -840,7 +911,7 @@ class PPOTrainer(BaseTrainer):
                             batch_dict["returns"][mini_batch_inds].to(self.accelerator.device),
                         )
 
-                        del mini_batch_dict, logprobs, logits, vpreds
+                        del (mini_batch_dict, logprobs, logits, vpreds)
                         torch.cuda.empty_cache()
                         gc.collect()
                         all_stats.append(train_stats)
@@ -871,7 +942,7 @@ class PPOTrainer(BaseTrainer):
             responses=responses,
             kls=kls.cpu(),
         )
-        del all_logprobs, ref_logprobs, queries, responses
+        del (all_logprobs, ref_logprobs, queries, responses)
         torch.cuda.empty_cache()
         gc.collect()
         if self.is_distributed:
@@ -1097,7 +1168,7 @@ class PPOTrainer(BaseTrainer):
             old_logprobs, values, logits, vpreds, logprobs, mask, advantages, returns
         )
 
-        del old_logprobs, values, logits, vpreds, logprobs, mask, advantages, returns
+        del (old_logprobs, values, logits, vpreds, logprobs, mask, advantages, returns)
         torch.cuda.empty_cache()
         self.accelerator.backward(loss)
         if self.config.max_grad_norm is not None:
@@ -1234,7 +1305,7 @@ class PPOTrainer(BaseTrainer):
         vf_loss = 0.5 * masked_mean(torch.max(vf_losses1, vf_losses2), mask)
         
         vf_clipfrac = masked_mean(torch.gt(vf_losses2, vf_losses1).float(), mask).to("cpu")
-        del vf_losses1,vf_losses2
+        del (vf_losses1,vf_losses2)
 
         ratio = torch.exp(logprobs - old_logprobs)
 
@@ -1263,8 +1334,7 @@ class PPOTrainer(BaseTrainer):
         approxkl = 0.5 * masked_mean((logprobs - old_logprobs) ** 2, mask).cpu()
         
         policykl = masked_mean(old_logprobs - logprobs, mask).cpu()
-        del old_logprobs
-        del logprobs
+        del (old_logprobs, logprobs)
 
         return_mean, return_var = masked_mean(returns, mask), masked_var(returns, mask).cpu()
         value_mean, value_var = masked_mean(values, mask), masked_var(values, mask).cpu()

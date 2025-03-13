@@ -36,8 +36,9 @@ import torch
 from tqdm import tqdm
 from transformers import set_seed
 
-from trl import PPOConfig, PPOTrainer
+import trl
 
+from mars_steg.utils.ppo_trainer import PPOConfig, PPOTrainer
 import sys
 from mars_steg.language.base_language_aspect import CoTLengthPenalisation
 from mars_steg.utils.prompt_data import BatchPromptData, log_merged_batch_wandb
@@ -141,9 +142,19 @@ def train(ppo_config, model_config, optimizer_config, train_config, generation_c
             transcript_responses = ppo_trainer.generate(
                 query_tensors, **training_generation_kwargs,
             )
+            transcript_responses_new = ppo_trainer.generate_no_lora(
+                query_tensors, **training_generation_kwargs,
+            )
             decoded_responses = [
                 tokenizer.decode(r.squeeze()) for r in transcript_responses
             ]
+            decoded_responses_new = [
+                tokenizer.decode(r.squeeze()) for r in transcript_responses_new
+            ]
+            print("__Lora model__")
+            print(decoded_responses[0])
+            print("__non Lora model__")
+            print(decoded_responses_new[0])
 
 
             # extraction of answer and cot (because cot_mode = True) parts of the transcript
