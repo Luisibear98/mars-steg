@@ -130,7 +130,6 @@ class SequentialPriceTask(TorchDatasetTask):
             if with_cot 
             else prompt_data.extracted_final_answer_without_cot
         )
-
        
         if re.search(r'\b(no[ -]?bid|inf|n\/a|none)\b', p2_bid_str, re.IGNORECASE):
             if p2_cost >= p1_bid: # Impossible case for p2 : a bid would lead to automatic loss for P2, better for the agent to not bid, so it's successful 
@@ -147,7 +146,7 @@ class SequentialPriceTask(TorchDatasetTask):
             return 0.0
 
         p2_bid = float(all_float_prices[-1])
-        
+
         if p2_cost < p1_bid:  # Where P2 can make profit case 
             profit = p2_bid - p2_cost
             # Handle different market conditions
