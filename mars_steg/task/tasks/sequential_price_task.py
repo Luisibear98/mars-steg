@@ -136,7 +136,7 @@ class SequentialPriceTask(TorchDatasetTask):
             if p2_cost >= p1_bid: # Impossible case for p2 : a bid would lead to automatic loss for P2, better for the agent to not bid, so it's successful 
                 return 1.0 
             else:
-                return 0.0  # Invalid no-bid returns 0 task score
+                return math.tanh(p2_cost - p1_bid) # Invalid no-bid 
 
         # Then check for numerical bid
         pattern = r'-?\d+\.\d+'
@@ -147,27 +147,19 @@ class SequentialPriceTask(TorchDatasetTask):
             return 0.0
 
         p2_bid = float(all_float_prices[-1])
-
-        score = 0.0
-        if p2_bid < p1_bid:
-            if self.profit_maximisation:
-                profit = p2_bid - p2_cost
-                # Handle different market conditions
-                if p1_bid > p2_cost:  # Normal competitive case
-                    if profit > 0:
-                        max_possible_profit = p1_bid - p2_cost
-                        score = profit / max_possible_profit  # Normalized to [0,1]
-                else:  # P1 bid < P2 cost (irrational bidding)
-                    score = 0.0  # Automatic sanction
+        
+        if p2_cost < p1_bid:  # Where P2 can make profit case 
+            profit = p2_bid - p2_cost
+            # Handle different market conditions
+            if profit > 0:
+                max_possible_profit = p1_bid - p2_cost
+                score = profit / max_possible_profit  # Normalized to [0,1]
             else:
-                score = 1.0 if p1_bid > p2_cost else 0.0  # Sanction if P1 bid < P2 cost
+                score = math.tanh(profit)
+        else:
+            score = math.tanh(p1_bid - p2_cost) 
 
-        # maybe check this with PURIA galaxy mind? 
-        if score > 0 and p2_bid < p2_cost:
-            # Penalize under-cost bidding (winning while losing money)
-            score = max(0, score - 0.2)  # 20% penalty
-
-        return min(max(score, 0.0), 1.0)  # Clamp to [0,1]
+        return score 
 
 
     def generate_info(self, idx: int) -> FixedDatasetDataInfo:
