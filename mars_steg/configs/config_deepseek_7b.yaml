@@ -10,7 +10,7 @@ Model:
 
 Optimizer:
   optimizer_name: "adam"
-  learning_rate: 5.0e-5
+  learning_rate: 2.0e-5
   weight_decay: 0.01
   adam_epsilon: 1.0e-8
   warmup_steps: 500

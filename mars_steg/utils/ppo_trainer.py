@@ -573,7 +573,8 @@ class PPOTrainer(BaseTrainer):
 
 
         if isinstance(query_tensor, List):
-            with self.optional_peft_ctx():
+            '''with self.optional_peft_ctx():
+
                 response = self._generate_batched(
                 self.model,
                 query_tensor,
@@ -581,7 +582,17 @@ class PPOTrainer(BaseTrainer):
                 batch_size=batch_size,
                 return_prompt=return_prompt,
                 **generation_kwargs,
+            )'''
+            self.model.pretrained_model.disable_adapter_layers()
+            response = self._generate_batched(
+                self.model,
+                query_tensor,
+                length_sampler=length_sampler,
+                batch_size=batch_size,
+                return_prompt=return_prompt,
+                **generation_kwargs,
             )
+            self.model.pretrained_model.enable_adapter_layers()
 
 
             
