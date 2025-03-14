@@ -536,14 +536,14 @@ def get_rewards_and_training_datas(
 
         # Original model extraction succeeded!
         else:
-          #  try:
-            composite_reward, task_score, language_score = train_dataset.reward_from_transcript(
-                prompt_data, skipping_failed_parsing_examples
-            )
+            try:
+                composite_reward, task_score, language_score = train_dataset.reward_from_transcript(
+                    prompt_data, skipping_failed_parsing_examples
+                )
 
             # Extraction failed at overseer/assessor stage - do not penalise model
-            #except (LLMTranscriptExtractionError, ValueError, TypeError):
-            #    continue
+            except (LLMTranscriptExtractionError, ValueError, TypeError):
+                continue
 
         composite_reward_list.append(t.tensor(composite_reward))
         task_score_list.append(task_score)

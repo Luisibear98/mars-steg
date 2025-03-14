@@ -583,7 +583,7 @@ class PPOTrainer(BaseTrainer):
             for module in self.model.pretrained_model.modules():
                 if isinstance(module, (BaseTunerLayer)):
                     module.enable_adapters(False)
-
+        
             response = self._generate_batched(
                 self.model,
                 query_tensor,

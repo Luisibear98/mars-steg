@@ -124,9 +124,9 @@ def train(ppo_config, model_config, optimizer_config, train_config, generation_c
                 user_prompts= batch_prompt_datas.cot_prompts, 
                 system_prompt=train_dataset.system_prompt,
             )
-
+            
             transformed_batch_conversation = [model.transform_conversation(conversation, prompt_config.prompt_thinking_helper) for conversation in batch_messages]
-
+        
             inputs = model.tokenize(transformed_batch_conversation)
 
             # Move the tokenized inputs to the same device the model is on (GPU/CPU)
@@ -142,20 +142,11 @@ def train(ppo_config, model_config, optimizer_config, train_config, generation_c
             transcript_responses = ppo_trainer.generate(
                 query_tensors, **training_generation_kwargs,
             )
-            transcript_responses_new = ppo_trainer.generate_no_lora(
-                query_tensors, **training_generation_kwargs,
-            )
+
+
             decoded_responses = [
                 tokenizer.decode(r.squeeze()) for r in transcript_responses
             ]
-            decoded_responses_new = [
-                tokenizer.decode(r.squeeze()) for r in transcript_responses_new
-            ]
-            print("__Lora model__")
-            print(decoded_responses[0])
-            print("__non Lora model__")
-            print(decoded_responses_new[0])
-
 
             # extraction of answer and cot (because cot_mode = True) parts of the transcript
             batch_prompt_datas.cot_transcripts = decoded_responses
@@ -167,8 +158,41 @@ def train(ppo_config, model_config, optimizer_config, train_config, generation_c
                 len(tokenizer(extracted_cot, add_special_tokens=False)["input_ids"]) if extracted_cot is not None else None 
                 for extracted_cot in extracted_batch_prompt_datas.extracted_cots
             ]
-           
 
+            batch_messages_no_lora = model.batchize_conversation(
+                user_prompts= batch_prompt_datas.cot_prompts, 
+                system_prompt=train_dataset.system_prompt,
+                assistant_prompts = extracted_batch_prompt_datas.extracted_cots
+            )
+
+            
+
+            transformed_batch_conversation_lora = [model.transform_conversation(conversation_no_lora) for conversation_no_lora in batch_messages_no_lora]
+            inputs_no_lora = model.tokenize(transformed_batch_conversation_lora)
+
+            # Move the tokenized inputs to the same device the model is on (GPU/CPU)
+            inputs_no_lora = {key: tensor.to(device_map["main_model"]) for key, tensor in inputs_no_lora.items()}
+
+            # Translate it into ppo.generate format which List[torch.tensors]
+            query_tensors_no_lora = []
+            for input_no_lora in inputs_no_lora["input_ids"]:
+                query_tensors_no_lora.append(input_no_lora)
+
+            transcript_responses_no_lora = ppo_trainer.generate_no_lora(
+                query_tensors_no_lora, **training_generation_kwargs,
+            )
+
+            decoded_responses_no_lora = [
+                tokenizer.decode(r.squeeze()) for r in transcript_responses_no_lora
+            ]
+            
+            print("__non Lora model__")
+            for i in range(len(transformed_batch_conversation_lora)):
+                print(f"Input: {transformed_batch_conversation_lora[i]}")
+
+                print(f"Output: {decoded_responses_no_lora[i]}")
+
+           
             # After all that answer/CoT extraction, it might have completely failed, so we can skip everything below entirely
             if len(extracted_batch_prompt_datas) == 0:
                 if train_config.skipping_failed_parsing_examples:

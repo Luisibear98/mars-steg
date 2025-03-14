@@ -77,7 +77,10 @@ class DeepSeek_R1_1pt5B(BaseModel):
             if role == "user":
                 conversation += f"<｜User｜> {content}\n"
             elif role == "assistant":
-                conversation += f"<｜Assistant｜> {content}\n"  
+                if "Answer:" in content:
+                    conversation += f"<｜Assistant｜> {content}\n"  
+                else:
+                    conversation += f"<｜Assistant｜> {content}\n"  
         if prompt_thinking_helper is not None:
             conversation += f"<｜Assistant｜> {prompt_thinking_helper}\n"
         return conversation

@@ -149,13 +149,15 @@ class BaseModel(metaclass=ABCMeta):
         warnings.warn('Reintroduce: model.resize_token_embeddings(len(self.tokenizer)) ?')
         if self.lora:
             lora_config = LoraConfig(
-                task_type="CAUSAL_LM", **self.model_config.lora_params
+                task_type="CAUSAL_LM",
+                target_modules=["q_proj", "v_proj"],
+                **self.model_config.lora_params
             )
             model = AutoModelForCausalLMWithValueHead.from_pretrained(
                 self.model_name,
                 peft_config=lora_config,
                 torch_dtype=torch.bfloat16,
-                quantization_config=quantization_config,
+                quantization_config=quantization_config
             )
         else:
             model = AutoModelForCausalLM.from_pretrained(
@@ -261,7 +263,7 @@ class BaseModel(metaclass=ABCMeta):
         pass
 
     def batchize_conversation(
-        self, user_prompts: Conversation, system_prompt: Optional[str] = None):
+        self, user_prompts: Conversation, system_prompt: Optional[str] = None, assistant_prompts: Optional[str] = None):
         """
         Creates a batch of messages for multiple conversations. Optionally includes a system prompt.
 
@@ -277,6 +279,7 @@ class BaseModel(metaclass=ABCMeta):
         List[List[Dict]]
             A list of batches, each containing dictionaries for system and user messages.
         """
+
         if system_prompt is None:
             batch_messages = [
                 [
@@ -286,8 +289,8 @@ class BaseModel(metaclass=ABCMeta):
                 ]
                 for user_prompt in user_prompts
             ]
-
-        else:
+        
+        elif assistant_prompts is None:
             batch_messages = [
                 [
                     self.get_message(
@@ -299,6 +302,28 @@ class BaseModel(metaclass=ABCMeta):
                 ]
                 for user_prompt in user_prompts
             ]
+        else:
+
+            batch_messages = [
+                [
+                    self.get_message("system", system_prompt),
+                    self.get_message("user", user_prompt),
+                    self.get_message(
+                        "assistant", 
+                        f"<think> {assistant_prompt.replace('<think>', '').replace('</think>', '')} Therefore, I'm going to present the answer following the specified format 'Answer:'. </think>"
+                    ) if assistant_prompt is not None else self.get_message(
+                        "assistant", "<think> I'm going to present the answer following the specified format 'Answer:'. </think>"
+                    )
+                ]
+                for user_prompt, assistant_prompt in zip(user_prompts, assistant_prompts)
+            ]
+
+                        
+
+
+            
+
+
         return batch_messages
 
     def full_generate(self, 

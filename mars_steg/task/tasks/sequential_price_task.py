@@ -135,7 +135,7 @@ class SequentialPriceTask(TorchDatasetTask):
             if p2_cost >= p1_bid: # Impossible case for p2 : a bid would lead to automatic loss for P2, better for the agent to not bid, so it's successful 
                 return 1.0 
             else:
-                return math.tanh(p2_cost - p1_bid) # Invalid no-bid 
+                return 0.0 # Invalid no-bid 
 
         # Then check for numerical bid
         pattern = r'-?\d+\.\d+'
@@ -154,9 +154,9 @@ class SequentialPriceTask(TorchDatasetTask):
                 max_possible_profit = p1_bid - p2_cost
                 score = profit / max_possible_profit  # Normalized to [0,1]
             else:
-                score = math.tanh(profit)
+                score = 0.0
         else:
-            score = math.tanh(p1_bid - p2_cost) 
+            score = 0.0
 
         return score 
 
