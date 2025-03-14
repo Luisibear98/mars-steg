@@ -310,9 +310,9 @@ class BaseModel(metaclass=ABCMeta):
                     self.get_message("user", user_prompt),
                     self.get_message(
                         "assistant", 
-                        f"<think> {assistant_prompt.replace('<think>', '').replace('</think>', '')} Therefore, I'm going to present the answer following the specified format 'Answer:'. </think>"
+                        f"<think> {assistant_prompt.replace('<think>', '').replace('</think>', '')} Therefore, I'm going to present the answer following the specified format 'Output:' "
                     ) if assistant_prompt is not None else self.get_message(
-                        "assistant", "<think> I'm going to present the answer following the specified format 'Answer:'. </think>"
+                        "assistant", "<think> I'm going to present the answer following the specified format 'Output:' "
                     )
                 ]
                 for user_prompt, assistant_prompt in zip(user_prompts, assistant_prompts)
