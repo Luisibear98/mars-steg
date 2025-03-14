@@ -159,11 +159,13 @@ def train(ppo_config, model_config, optimizer_config, train_config, generation_c
                 for extracted_cot in extracted_batch_prompt_datas.extracted_cots
             ]
 
+            
             batch_messages_no_lora = model.batchize_conversation(
                 user_prompts= batch_prompt_datas.cot_prompts, 
                 system_prompt=train_dataset.system_prompt,
                 assistant_prompts = extracted_batch_prompt_datas.extracted_cots
             )
+            
 
             
 
@@ -181,9 +183,19 @@ def train(ppo_config, model_config, optimizer_config, train_config, generation_c
             transcript_responses_no_lora = ppo_trainer.generate_no_lora(
                 query_tensors_no_lora, **training_generation_kwargs,
             )
+            
 
             decoded_responses_no_lora = [
                 tokenizer.decode(r.squeeze()) for r in transcript_responses_no_lora
+            ]
+            batch_prompt_datas_no_lora = batch_prompt_datas
+            batch_prompt_datas_no_lora.cot_transcripts = decoded_responses_no_lora
+
+            
+            extracted_batch_prompt_datas_no_lora = extract_cots(batch_prompt_datas_no_lora, model.output_delimitation_tokens, train_config.skipping_failed_parsing_examples)
+            extracted_batch_prompt_datas_no_lora.extracted_cot_token_lengths = [
+                len(tokenizer(extracted_cot, add_special_tokens=False)["input_ids"]) if extracted_cot is not None else None 
+                for extracted_cot in extracted_batch_prompt_datas_no_lora.extracted_cots
             ]
             
             print("__non Lora model__")
@@ -191,6 +203,8 @@ def train(ppo_config, model_config, optimizer_config, train_config, generation_c
                 print(f"Input: {transformed_batch_conversation_lora[i]}")
 
                 print(f"Output: {decoded_responses_no_lora[i]}")
+
+            # extract the cot from decoded_responses_no_lora and give an score
 
            
             # After all that answer/CoT extraction, it might have completely failed, so we can skip everything below entirely
@@ -200,7 +214,6 @@ def train(ppo_config, model_config, optimizer_config, train_config, generation_c
                     continue
                 else:
                     warnings.warn("All examples failed to parse. Penalising for all examples below")
-
 
             # Might have partially failed...
             elif len(extracted_batch_prompt_datas) != len(batch_prompt_datas):
@@ -219,6 +232,15 @@ def train(ppo_config, model_config, optimizer_config, train_config, generation_c
                 batch_prompt_datas=extracted_batch_prompt_datas,
                 query_tensors=query_tensors,
                 transcript_responses=transcript_responses, 
+                train_dataset=train_dataset,
+                skipping_failed_parsing_examples = train_config.skipping_failed_parsing_examples
+            )
+
+            composite_reward_list_no_lora, task_score_list_no_lora, language_score_list_no_lora, train_query_tensors_no_lora, train_transcript_responses_no_lora = \
+            get_rewards_and_training_datas(
+                batch_prompt_datas=extracted_batch_prompt_datas_no_lora,
+                query_tensors=query_tensors_no_lora,
+                transcript_responses=transcript_responses_no_lora, 
                 train_dataset=train_dataset,
                 skipping_failed_parsing_examples = train_config.skipping_failed_parsing_examples
             )
@@ -242,6 +264,12 @@ def train(ppo_config, model_config, optimizer_config, train_config, generation_c
             print(f"Rewarding example with {composite_reward_list}")
             print(f"Task score: {task_score_list}")
             print(f"Language score: {language_score_list}")
+            print("--------")
+            print("NO LORA")
+            print("--------")
+            print(f"Rewarding example with {composite_reward_list_no_lora}")
+            print(f"Task score: {task_score_list_no_lora}")
+            print(f"Language score: {language_score_list_no_lora}")
             print("--------")
             # Set this flag to False to skip optimization
             run_optimization = train_config.run_optimization
