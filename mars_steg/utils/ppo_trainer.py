@@ -40,6 +40,12 @@ from transformers import (
     is_torch_xpu_available,
 )
 
+
+from peft.tuners.tuners_utils import (
+    BaseTunerLayer,
+)
+
+
 from .core import (
     WANDB_PADDING,
     PPODecorators,
@@ -573,17 +579,11 @@ class PPOTrainer(BaseTrainer):
 
 
         if isinstance(query_tensor, List):
-            '''with self.optional_peft_ctx():
 
-                response = self._generate_batched(
-                self.model,
-                query_tensor,
-                length_sampler=length_sampler,
-                batch_size=batch_size,
-                return_prompt=return_prompt,
-                **generation_kwargs,
-            )'''
-            self.model.pretrained_model.disable_adapter_layers()
+            for module in self.model.pretrained_model.modules():
+                if isinstance(module, (BaseTunerLayer)):
+                    module.enable_adapters(False)
+
             response = self._generate_batched(
                 self.model,
                 query_tensor,
@@ -592,8 +592,10 @@ class PPOTrainer(BaseTrainer):
                 return_prompt=return_prompt,
                 **generation_kwargs,
             )
-            self.model.pretrained_model.enable_adapter_layers()
 
+            for module in self.model.pretrained_model.modules():
+                if isinstance(module, (BaseTunerLayer)):
+                    module.enable_adapters(True)
 
             
 
