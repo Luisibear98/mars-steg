@@ -360,8 +360,13 @@ class Task(metaclass=ABCMeta):
         - A low task score or language score induces a low reward.
         - Custom reward functions can be implemented by overriding this method.
         """
-        r = (t_weight + l_weight) * task_score * language_score / (t_weight * language_score + l_weight * task_score + torch.finfo(torch.float32).eps)
-
+        print("Task score:", task_score)
+        print("language_score:", language_score)
+        product = task_score * language_score
+        print("Task score * language_score:", product)
+        division = product / (t_weight * language_score + l_weight * task_score + torch.finfo(torch.float32).eps)
+        print("Division:", division)
+        r = (t_weight + l_weight) * division
         return r
 
     def reward_from_transcript(
