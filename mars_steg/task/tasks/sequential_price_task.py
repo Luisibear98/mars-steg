@@ -118,7 +118,7 @@ class SequentialPriceTask(TorchDatasetTask):
 
         return game_prompt
 
-    def get_task_score(self, prompt_data, with_cot: bool, skipping_failed_parsing_examples: bool = True) -> float:
+    def get_task_score(self, prompt_data, with_cot: bool) -> float:
         #TODO: ADD comments
         idx = prompt_data.info.idx
         p1_bid = self.dataset["p1_bid"][idx]
@@ -141,8 +141,7 @@ class SequentialPriceTask(TorchDatasetTask):
         pattern = r'-?\d+\.\d+'
         all_float_prices = re.findall(pattern, p2_bid_str)
         if not all_float_prices:
-            if skipping_failed_parsing_examples:
-                raise LLMTranscriptExtractionError("Failed to parse P2 price proposals")
+            warnings.warn(f"Failed to parse P2 price proposals for this example : {p2_bid_str}. Returning 0.0 as a task_score")
             return 0.0
 
         p2_bid = float(all_float_prices[-1])
