@@ -44,7 +44,7 @@ from mars_steg.config import PromptConfig
 from typing import List, Tuple, Optional, Dict
 
 
-
+EPSILON = 3.14e-7
 
 class Task(metaclass=ABCMeta):
     """
@@ -363,11 +363,11 @@ class Task(metaclass=ABCMeta):
         """
         print("Task score:", task_score)
         print("language_score:", language_score)
-        product = task_score * language_score
-        print("Task score * language_score:", product)
-        division = product / (t_weight * language_score + l_weight * task_score) if language_score > 0.0 and task_score > 0.0 else 0.0
-        print("Division:", division)
-        r = (t_weight + l_weight) * division
+        numerator = task_score * language_score
+        print("Task score * language_score:", numerator)
+        denominator = t_weight * language_score + l_weight * task_score + EPSILON
+        print("denominator:", denominator)
+        r = (t_weight + l_weight) * numerator / denominator
         return r
 
     def reward_from_transcript(
