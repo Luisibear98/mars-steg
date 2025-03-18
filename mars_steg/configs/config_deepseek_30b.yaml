@@ -35,9 +35,12 @@ Train:
   number_of_evaluations: 3  # The number of evaluations for the COT gap among epochs
   skipping_failed_parsing_examples: False #Skip examples that failed when parsing them for task score, language score, answer extraction, CoT extrcation etc
   run_optimization: True
-  is_peft_model
-init_kl_coef
-adap_kl_ctrl
+  curriculum_threshold : 0.8 # Threshold indicating whether to decrease max_token_length when using c_length_penalisation
+  max_length_decreasing_rate: 0.1 #Rate of decreasing max_token_length when using c_length_penalisation
+  is_peft_model: True # Wheter we are using peft model
+  init_kl_coef: 0.05 #float value to initiate the kl coef (constant for adap_kl_ctrl: False or init value for adaptative KL otherwise)
+  adap_kl_ctrl: False # wheter to use a constant or adaptative KL control
+  lora_unload_measurement : False # wheter to use the lora unloading measurement
 
 Generation:
   min_length: 0

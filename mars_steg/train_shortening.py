@@ -159,50 +159,47 @@ def train(ppo_config, model_config, optimizer_config, train_config, generation_c
                 for extracted_cot in extracted_batch_prompt_datas.extracted_cots
             ]
 
-            
-            batch_messages_no_lora = model.batchize_conversation(
-                user_prompts= batch_prompt_datas.cot_prompts, 
-                system_prompt=train_dataset.system_prompt,
-                assistant_prompts = extracted_batch_prompt_datas.extracted_cots
-            )
-            
+            if train_config.lora_unload_measurement:
+                batch_messages_no_lora = model.batchize_conversation(
+                    user_prompts= batch_prompt_datas.cot_prompts, 
+                    system_prompt=train_dataset.system_prompt,
+                    assistant_prompts = extracted_batch_prompt_datas.extracted_cots
+                )
 
-            
+                transformed_batch_conversation_lora = [model.transform_conversation(conversation_no_lora) for conversation_no_lora in batch_messages_no_lora]
+                inputs_no_lora = model.tokenize(transformed_batch_conversation_lora)
 
-            transformed_batch_conversation_lora = [model.transform_conversation(conversation_no_lora) for conversation_no_lora in batch_messages_no_lora]
-            inputs_no_lora = model.tokenize(transformed_batch_conversation_lora)
+                # Move the tokenized inputs to the same device the model is on (GPU/CPU)
+                inputs_no_lora = {key: tensor.to(device_map["main_model"]) for key, tensor in inputs_no_lora.items()}
 
-            # Move the tokenized inputs to the same device the model is on (GPU/CPU)
-            inputs_no_lora = {key: tensor.to(device_map["main_model"]) for key, tensor in inputs_no_lora.items()}
+                # Translate it into ppo.generate format which List[torch.tensors]
+                query_tensors_no_lora = []
+                for input_no_lora in inputs_no_lora["input_ids"]:
+                    query_tensors_no_lora.append(input_no_lora)
 
-            # Translate it into ppo.generate format which List[torch.tensors]
-            query_tensors_no_lora = []
-            for input_no_lora in inputs_no_lora["input_ids"]:
-                query_tensors_no_lora.append(input_no_lora)
+                transcript_responses_no_lora = ppo_trainer.generate_no_lora(
+                    query_tensors_no_lora, **training_generation_kwargs,
+                )
+                
 
-            transcript_responses_no_lora = ppo_trainer.generate_no_lora(
-                query_tensors_no_lora, **training_generation_kwargs,
-            )
-            
+                decoded_responses_no_lora = [
+                    tokenizer.decode(r.squeeze()) for r in transcript_responses_no_lora
+                ]
+                batch_prompt_datas_no_lora = batch_prompt_datas
+                batch_prompt_datas_no_lora.cot_transcripts = decoded_responses_no_lora
 
-            decoded_responses_no_lora = [
-                tokenizer.decode(r.squeeze()) for r in transcript_responses_no_lora
-            ]
-            batch_prompt_datas_no_lora = batch_prompt_datas
-            batch_prompt_datas_no_lora.cot_transcripts = decoded_responses_no_lora
+                
+                extracted_batch_prompt_datas_no_lora = extract_cots(batch_prompt_datas_no_lora, model.output_delimitation_tokens, train_config.skipping_failed_parsing_examples)
+                extracted_batch_prompt_datas_no_lora.extracted_cot_token_lengths = [
+                    len(tokenizer(extracted_cot, add_special_tokens=False)["input_ids"]) if extracted_cot is not None else None 
+                    for extracted_cot in extracted_batch_prompt_datas_no_lora.extracted_cots
+                ]
+                
+                print("__non Lora model__")
+                for i in range(len(transformed_batch_conversation_lora)):
+                    print(f"Input: {transformed_batch_conversation_lora[i]}")
 
-            
-            extracted_batch_prompt_datas_no_lora = extract_cots(batch_prompt_datas_no_lora, model.output_delimitation_tokens, train_config.skipping_failed_parsing_examples)
-            extracted_batch_prompt_datas_no_lora.extracted_cot_token_lengths = [
-                len(tokenizer(extracted_cot, add_special_tokens=False)["input_ids"]) if extracted_cot is not None else None 
-                for extracted_cot in extracted_batch_prompt_datas_no_lora.extracted_cots
-            ]
-            
-            print("__non Lora model__")
-            for i in range(len(transformed_batch_conversation_lora)):
-                print(f"Input: {transformed_batch_conversation_lora[i]}")
-
-                print(f"Output: {decoded_responses_no_lora[i]}")
+                    print(f"Output: {decoded_responses_no_lora[i]}")
 
             # extract the cot from decoded_responses_no_lora and give an score
 
@@ -236,14 +233,16 @@ def train(ppo_config, model_config, optimizer_config, train_config, generation_c
                 skipping_failed_parsing_examples = train_config.skipping_failed_parsing_examples
             )
 
-            composite_reward_list_no_lora, task_score_list_no_lora, language_score_list_no_lora, train_query_tensors_no_lora, train_transcript_responses_no_lora = \
-            get_rewards_and_training_datas(
-                batch_prompt_datas=extracted_batch_prompt_datas_no_lora,
-                query_tensors=query_tensors_no_lora,
-                transcript_responses=transcript_responses_no_lora, 
-                train_dataset=train_dataset,
-                skipping_failed_parsing_examples = train_config.skipping_failed_parsing_examples
-            )
+            if train_config.lora_unload_measurement:
+
+                composite_reward_list_no_lora, task_score_list_no_lora, language_score_list_no_lora, _, _ = \
+                get_rewards_and_training_datas(
+                    batch_prompt_datas=extracted_batch_prompt_datas_no_lora,
+                    query_tensors=query_tensors_no_lora,
+                    transcript_responses=transcript_responses_no_lora, 
+                    train_dataset=train_dataset,
+                    skipping_failed_parsing_examples = train_config.skipping_failed_parsing_examples
+                )
 
             log_merged_batch_wandb([batch_prompt_datas], epoch = epoch, batch_in_epoch = batch_ticker)
 
@@ -265,12 +264,15 @@ def train(ppo_config, model_config, optimizer_config, train_config, generation_c
             print(f"Task score: {task_score_list}")
             print(f"Language score: {language_score_list}")
             print("--------")
-            print("NO LORA")
-            print("--------")
-            print(f"Rewarding example with {composite_reward_list_no_lora}")
-            print(f"Task score: {task_score_list_no_lora}")
-            print(f"Language score: {language_score_list_no_lora}")
-            print("--------")
+
+            if train_config.lora_unload_measurement:
+                print("NO LORA")
+                print("--------")
+                print(f"Rewarding example with {composite_reward_list_no_lora}")
+                print(f"Task score: {task_score_list_no_lora}")
+                print(f"Language score: {language_score_list_no_lora}")
+                print("--------")
+            
             # Set this flag to False to skip optimization
             run_optimization = train_config.run_optimization
 

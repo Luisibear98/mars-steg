@@ -390,6 +390,18 @@ class TrainConfig:
         Skip examples that failed when parsing them for task score, language score, answer extraction, CoT extrcation etc
     run_optimization: bool
         Wheter to skip or not optimisation step (can be useful for debugging the overall training loop)
+    curriculum_threshold: float
+        Threshold value below which we decide to decrease the CoT length constraint
+    max_length_decreasing_rate: float 
+        Rate value for deacreasing the CoT length gradually
+    is_peft_model: bool
+        Wheter we are using peft model
+    init_kl_coef: float 
+        float value to initiate the kl coef (constant for adap_kl_ctrl: False or init value for adaptative KL otherwise)
+    adap_kl_ctrl: bool 
+        wheter to use a constant or adaptative KL control
+    lora_unload_measurement : bool 
+        wheter to use the lora unloading measurement
 
 
     Notes
@@ -420,9 +432,10 @@ class TrainConfig:
     run_optimization: bool  
     curriculum_threshold: float
     max_length_decreasing_rate: float 
-    is_peft_model: bool # Wheter we are using peft model
-    init_kl_coef: float #float value to initiate the kl coef (constant for adap_kl_ctrl: False or init value for adaptative KL otherwise)
-    adap_kl_ctrl: bool # wheter to use a constant or adaptative KL control
+    is_peft_model: bool
+    init_kl_coef: float 
+    adap_kl_ctrl: bool 
+    lora_unload_measurement : bool 
 
 @dataclass
 class GenerationConfig:

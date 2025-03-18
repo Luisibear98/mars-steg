@@ -19,22 +19,28 @@ Optimizer:
 Train:
   log_with: null  # Use 'wandb' to log with wandb
   mini_batch_size: 1  # The PPO minibatch size
-  batch_size: 4 # The batch size
-  gradient_accumulation_steps: 1  # The number of gradient accumulation steps
+  batch_size: 8 # The batch size
+  gradient_accumulation_steps: 4  # The number of gradient accumulation steps
   seed: 42  # The seed for reproducibility
-  num_train_epochs: 10  # The number of training epochs
+  num_train_epochs: 5  # The number of training epochs
   num_eval_episodes: 10  # The number of evaluation episodes
   save_frequency: 100  # The frequency to save the model relative to the number of training data batches
-  ppo_epochs: 1  # The number of PPO epochs
+  ppo_epochs: 10  # The number of PPO epochs
   train_proportion : 0.95  # The proportion of the training data
   validation_proportion : 0.05  # The proportion of the validation data (out of left data after training data split)
-  number_shared_layers_for_ref_model: 30 # The number of shared layers for the reference model in PPO RLHF
+  number_shared_layers_for_ref_model: 0 # The number of shared layers for the reference model in PPO RLHF
   create_ref_model: False   # Whether to create a reference model in PPO RLHF
   evaluate_cot_gap: False  # Whether to evaluate the COT gap
   # cot_gap_evaluation_number_batches_samples: 1  # The number of batches sampled for evaluating the COT gap
-  number_of_evaluations: 3  # The number of evaluations for the COT gap among epochs
+  number_of_evaluations: 0  # The number of evaluations for the COT gap among epochs
   skipping_failed_parsing_examples: False #Skip examples that failed when parsing them for task score, language score, answer extraction, CoT extrcation etc
   run_optimization: True
+  curriculum_threshold : 0.8 # Threshold indicating whether to decrease max_token_length when using c_length_penalisation
+  max_length_decreasing_rate: 0.1 #Rate of decreasing max_token_length when using c_length_penalisation
+  is_peft_model: True # Wheter we are using peft model
+  init_kl_coef: 0.05 #float value to initiate the kl coef (constant for adap_kl_ctrl: False or init value for adaptative KL otherwise)
+  adap_kl_ctrl: False # wheter to use a constant or adaptative KL control
+  lora_unload_measurement : False # wheter to use the lora unloading measurement
 
 Generation:
   min_length: 0
