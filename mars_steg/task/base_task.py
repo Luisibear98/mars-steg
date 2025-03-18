@@ -365,9 +365,9 @@ class Task(metaclass=ABCMeta):
         print("language_score:", language_score)
         numerator = task_score * language_score
         print("Task score * language_score:", numerator)
-        denominator = t_weight * language_score + l_weight * task_score + EPSILON
+        denominator = language_score + task_score + EPSILON
         print("denominator:", denominator)
-        r = (t_weight + l_weight) * numerator / denominator
+        r = 2.0000 * numerator / denominator
         return r
 
     def reward_from_transcript(
