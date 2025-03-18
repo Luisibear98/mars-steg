@@ -361,14 +361,9 @@ class Task(metaclass=ABCMeta):
         - A low task score or language score induces a low reward.
         - Custom reward functions can be implemented by overriding this method.
         """
-        #Be sure that we have enough precision :
 
-        print("Task score:", task_score)
-        print("language_score:", language_score)
         numerator = task_score * language_score
-        print("Task score * language_score:", numerator)
         denominator = t_weight * language_score + l_weight * task_score + EPSILON
-        print("denominator:", denominator)
         r = (t_weight + l_weight) * numerator / denominator
         return r
 
@@ -414,18 +409,11 @@ class Task(metaclass=ABCMeta):
        
         task_score = self.get_task_score(prompt_data, with_cot=True)
         task_score = check_score('task_score:', task_score)
-        task_score = 0.2324
 
-        
         language_score = self.language_aspect.get_language_score(prompt_data)
         language_score = check_score('language_score:', language_score)
-        language_score = 0.5627
 
         r = self.reward(task_score, language_score, t_weight, l_weight)
-        print("------")
-        print("Reward:",r)
-        print("------")
-
 
         return r, task_score, language_score
 
