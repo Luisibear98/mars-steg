@@ -411,6 +411,10 @@ class Task(metaclass=ABCMeta):
         language_score = check_score('language_score:', language_score)
 
         r = self.reward(task_score, language_score, t_weight, l_weight)
+        print("------")
+        print("Reward:",r)
+        print("------")
+
 
         return r, task_score, language_score
 
