@@ -150,9 +150,9 @@ class SequentialPriceTask(TorchDatasetTask):
         if p2_cost < p1_bid:  # Where P2 can make profit case 
             profit = p2_bid - p2_cost
             # Handle different market conditions
-            if profit > 0:
+            if profit > 0 and p2_bid < p1_bid:
                 max_possible_profit = p1_bid - p2_cost
-                score = max(0.0, min(profit / max_possible_profit, 1.0))  # Normalized to [0,1]
+                score = profit / max_possible_profit  # Normalized to [0,1]
             else:
                 score = 0.0
         else:
