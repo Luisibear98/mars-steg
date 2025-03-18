@@ -412,10 +412,12 @@ class Task(metaclass=ABCMeta):
        
         task_score = self.get_task_score(prompt_data, with_cot=True)
         task_score = check_score('task_score:', task_score)
-        task_score = 0.5
+        task_score = 0.2324
+
         
         language_score = self.language_aspect.get_language_score(prompt_data)
         language_score = check_score('language_score:', language_score)
+        language_score = 0.5627
 
         r = self.reward(task_score, language_score, t_weight, l_weight)
         print("------")
