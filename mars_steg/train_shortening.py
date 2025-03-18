@@ -323,6 +323,7 @@ def train(ppo_config, model_config, optimizer_config, train_config, generation_c
                     'mean_cot_token_length': batch_prompt_datas.mean_length_cot(),
                     'task_score': sum(task_score_list) / len(composite_reward_list),
                     'language_score': sum(language_score_list) / len(language_score_list),
+                    'reward' : sum(composite_reward_list) / len(composite_reward_list)
                 }
             )
 
