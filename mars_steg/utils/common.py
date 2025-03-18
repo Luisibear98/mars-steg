@@ -7,7 +7,7 @@ from transformers import AutoModelForCausalLM
 from typing import Optional, Dict
 from torch.optim import AdamW
 import logging
-from copy import deepcopy
+import traceback
 
 from typing import List, Tuple
 
@@ -542,7 +542,13 @@ def get_rewards_and_training_datas(
                 )
 
             # Extraction failed at overseer/assessor stage - do not penalise model
-            except LLMTranscriptExtractionError:
+            except LLMTranscriptExtractionError as e:
+                print(f"LLMTranscriptExtractionError occurred: {str(e)}")
+                traceback.print_exc()
+                continue
+            except Exception as e:
+                print(f"Other error occurred: {str(e)}")
+                traceback.print_exc()
                 continue
 
         composite_reward_list.append(t.tensor(composite_reward))
