@@ -372,7 +372,6 @@ class Task(metaclass=ABCMeta):
         prompt_data: PromptData, 
         t_weight: float = 1.0, 
         l_weight: float = 1.0,
-        skipping_failed_parsing_examples: Optional[bool] = False
     ) -> Tuple[float, float, float]:
         """
         Computes the language score, the task score and calculates the final reward from a task transcript, i.e. the LLM answer for the considered task.
@@ -389,8 +388,6 @@ class Task(metaclass=ABCMeta):
             The weight assigned to the task score (default is 1.0).
         l_weight : float, optional
             The weight assigned to the language score (default is 1.0).
-        XXX: skipping_failed_parsing_examples: bool, optional
-            Skip examples that failed when parsing them for task score, language score, answer extraction, CoT extraction etc
 
         Returns
         -------
