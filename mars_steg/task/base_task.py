@@ -326,8 +326,8 @@ class Task(metaclass=ABCMeta):
         self,
         task_score: float,
         language_score: float,
-        t_weight: float = 1.0e0,
-        l_weight: float = 1.0e0,
+        t_weight: float = .99,
+        l_weight: float = .99,
     ) -> float:
         """
         Computes the harmonic weighted reward score based on task success and language aspect.
@@ -375,8 +375,8 @@ class Task(metaclass=ABCMeta):
     def reward_from_transcript(
         self, 
         prompt_data: PromptData, 
-        t_weight: float = 1.0e0, 
-        l_weight: float = 1.0e0,
+        t_weight: float = .99, 
+        l_weight: float = .99,
         skipping_failed_parsing_examples: Optional[bool] = False
     ) -> Tuple[float, float, float]:
         """
