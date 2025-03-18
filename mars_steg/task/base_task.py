@@ -267,7 +267,7 @@ class Task(metaclass=ABCMeta):
         return cot_prompt, no_cot_prompt
 
     @abstractmethod
-    def get_task_score(self, prompt_data: PromptData, with_cot: bool) -> float:
+    def get_task_score(self, prompt_data: PromptData, with_cot: bool, skipping_failed_parsing_examples: bool = False) -> float:
         """
         Evaluates task performance based on PromptData object (cf. See Also).
 
@@ -282,6 +282,8 @@ class Task(metaclass=ABCMeta):
             The prompt and associated task information, including model-generated responses.
         with_cot : bool
             Whether the task was performed with CoT reasoning.
+        skipping_failed_parsing_examples: bool 
+            Skip examples that failed when parsing them for task score, language score, answer extraction, CoT extrcation etc
 
         Returns
         -------
@@ -408,7 +410,7 @@ class Task(metaclass=ABCMeta):
         task_score = self.get_task_score(
             prompt_data, with_cot=True, 
             skipping_failed_parsing_examples=skipping_failed_parsing_examples
-        )
+            )
         task_score = check_score('task_score:', task_score)
 
         language_score = self.language_aspect.get_language_score(prompt_data)

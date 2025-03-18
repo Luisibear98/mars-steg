@@ -118,7 +118,7 @@ class SequentialPriceTask(TorchDatasetTask):
 
         return game_prompt
 
-    def get_task_score(self, prompt_data, with_cot: bool) -> float:
+    def get_task_score(self, prompt_data, with_cot: bool, **kwargs) -> float:
         #TODO: ADD comments
         idx = prompt_data.info.idx
         p1_bid = self.dataset["p1_bid"][idx]
