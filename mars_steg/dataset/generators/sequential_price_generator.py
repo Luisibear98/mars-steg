@@ -230,11 +230,6 @@ class SequentialPriceGameGenerator:
         print(f"Dataset saved to: {output_path}")
 
 if __name__ == '__main__':
-    game_config = GameConfig(
-        minimum_margin=1,
-        maximum_margin=15,
-        bid_direction_skew=0.9,
-        seed=42
-    )
+    game_config = GameConfig()
     generator = SequentialPriceGameGenerator(game_config)
     generator.generate_dataset(num_episodes=1000, output_path=None, overwrite=True)
