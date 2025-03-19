@@ -11,7 +11,7 @@ from typing import Optional
 class GameConfig:
     minimum_margin: float = 1
     maximum_margin: float = 15
-    bid_direction_skew: float = 1.02 # probability of p1_bid being higher than p2_true_cost
+    bid_direction_skew: float = 1.0 # probability of p1_bid being higher than p2_true_cost
     seed: int = 42
 
 @dataclass
@@ -78,7 +78,10 @@ class SequentialPriceGameGenerator:
         self.p2_costs.true_cost = cost_with_overhead * (1 - final_discount)
 
         # Generate P1's bid
-        direction = 1 if torch.rand(1) > (1-self.config.bid_direction_skew) else -1
+        if self.config.bid_direction_skew == 1.0:
+            direction = 1.0
+        else:
+            direction = 1 if torch.rand(1) > (1-self.config.bid_direction_skew) else -1
         margin = torch.FloatTensor(1).uniform_(self.config.minimum_margin, self.config.maximum_margin).item()
         self.p1_bid = self.p2_costs.true_cost + direction * margin        
         self.generate_p1_bid_variant()
