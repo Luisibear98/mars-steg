@@ -7,7 +7,7 @@ metric:
 run_cap: 36 # not sure
 parameters:
   learning_rate:
-    values: [1e-6, 4e-6, 8e-6]
+    values: [8e-6, 6e-6, 4e-6]
   batch_size:
     values: [8]
   gradient_accumulation_steps:
