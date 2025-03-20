@@ -15,7 +15,6 @@ Examples:
 
 """
 
-import numpy as np
 import regex as re
 import math
 import warnings
@@ -119,7 +118,7 @@ class SequentialPriceTask(TorchDatasetTask):
 
         return game_prompt
 
-    def get_task_score(self, prompt_data, with_cot: bool, **kwargs) -> float:
+    def get_task_score(self, prompt_data, with_cot: bool, skipping_failed_parsing_examples: bool = True) -> float:
         #TODO: ADD comments
         idx = prompt_data.info.idx
         p1_bid = self.dataset["p1_bid"][idx]
@@ -131,34 +130,51 @@ class SequentialPriceTask(TorchDatasetTask):
             if with_cot 
             else prompt_data.extracted_final_answer_without_cot
         )
+
        
         if re.search(r'\b(no[ -]?bid|inf|n\/a|none)\b', p2_bid_str, re.IGNORECASE):
             if p2_cost >= p1_bid: # Impossible case for p2 : a bid would lead to automatic loss for P2, better for the agent to not bid, so it's successful 
                 return 1.0 
             else:
-                return 0.0 # Invalid no-bid 
+                return 0.0  # Valid no-bid returns 0 without penalty
 
         # Then check for numerical bid
         pattern = r'-?\d+\.\d+'
         all_float_prices = re.findall(pattern, p2_bid_str)
         if not all_float_prices:
-            warnings.warn(f"Failed to parse P2 price proposals for this example : {p2_bid_str}. Returning 0.0 as a task_score")
+            if skipping_failed_parsing_examples:
+                raise LLMTranscriptExtractionError("Failed to parse P2 price proposals")
             return 0.0
 
         p2_bid = float(all_float_prices[-1])
 
-        if p2_cost < p1_bid:  # Where P2 can make profit case 
-            profit = p2_bid - p2_cost
-            # Handle different market conditions
-            if profit > 0 and p2_bid < p1_bid:
-                max_possible_profit = p1_bid - p2_cost
-                score = profit / max_possible_profit  # Normalized to [0,1]
+        score = 0.0
+        if p2_bid < p1_bid:
+            if self.profit_maximisation:
+                profit = p2_bid - p2_cost
+                # Handle different market conditions
+                if p1_bid > p2_cost:  # Normal competitive case
+                    if profit > 0:
+                        max_possible_profit = p1_bid - p2_cost
+                        normalized_profit = profit / max_possible_profit if max_possible_profit > 0 else 0
+                        score = 0.3 + 0.7 * normalized_profit  # Scale profit to [0.3, 1.0]
+                else:  # P1 bid < P2 cost (irrational bidding)
+                    score = 0.3  # Automatic sanction
             else:
-                score = 0.0
-        else:
-            score = 0.0
+                score = 1.0 if p1_bid > p2_cost else 0.3  # Sanction if P1 bid < P2 cost
 
-        return score 
+        # maybe check this with PURIA galaxy mind? 
+        if score > 0 and p2_bid < p2_cost:
+            # Penalize under-cost bidding (winning while losing money)
+            score = max(0, score - 0.2)  # 20% penalty
+            
+        if p2_bid >= p1_bid:  
+            loss_margin = (p2_bid - p1_bid) / max(p1_bid, 1e-6)  # Normalize margin
+            score = 0.3 * (1 - min(loss_margin, 1))  # Closer bids get higher scores
+        else:  
+            # P2 wins → Rescale between [0.3, 1]
+            score = 0.3 + 0.7 * score  # Scale within [0.3, 1]
+        return min(max(score, 0.0), 1.0)  # Clamp to [0,1]
 
 
     def generate_info(self, idx: int) -> FixedDatasetDataInfo:
