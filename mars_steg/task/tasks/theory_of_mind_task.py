@@ -128,7 +128,7 @@ class TheoryOfMindTask(TorchDatasetTask):
         infilled_story = self.dataset.iloc[index]["infilled_story"]
         question = self.dataset.iloc[index]["question"]
         
-        prompt = f"{infilled_story}\n\nQuestion: {question}"
+        prompt = f"{story}\n\nQuestion: {question}"
 
         return prompt
 
