@@ -475,6 +475,8 @@ def get_rewards_and_training_datas(
         transcript_responses: List[t.TensorType], 
         train_dataset: TorchDatasetTask,
         skipping_failed_parsing_examples: Optional[bool] = True,
+        t_weight: float = 1.0, 
+        l_weight: float = 1.0,
         ) -> Tuple[List]:
     
     """
@@ -496,6 +498,10 @@ def get_rewards_and_training_datas(
         The original list of tensors generated in response to the inputs
     train_dataset : TorchDatasetTask
         The Task subclass describing the task the model is solving; in this case specifically that for the train dataset. 
+    t_weight : float, optional
+        The weight assigned to the task score (default is 1.0).
+    l_weight : float, optional
+        The weight assigned to the language score (default is 1.0).
     skipping_failed_parsing_examples: bool
         Skip examples that failed when parsing them for task score, language score, answer extraction, CoT extraction etc
 
@@ -538,7 +544,10 @@ def get_rewards_and_training_datas(
         else:
             try:
                 composite_reward, task_score, language_score = train_dataset.reward_from_transcript(
-                    prompt_data, skipping_failed_parsing_examples=skipping_failed_parsing_examples
+                    prompt_data=prompt_data, 
+                    skipping_failed_parsing_examples=skipping_failed_parsing_examples, 
+                    t_weight=t_weight, 
+                    l_weight= l_weight,
                 )
 
             # Extraction failed at overseer/assessor stage - do not penalise model

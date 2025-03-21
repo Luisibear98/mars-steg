@@ -3,6 +3,8 @@ penalisation_class_name: CoTLengthPenalisation
 dataset_class_kwargs: 
   dataset: mars_steg/dataset/sequential_price_game.csv
   uses_local_neural_assessor: false
+  t_weight: 0.5
+  l_weight: 10 
 penalisation_class_kwargs:
-  max_new_tokens_threshold: 1100
+  max_new_tokens_threshold: 900
   
