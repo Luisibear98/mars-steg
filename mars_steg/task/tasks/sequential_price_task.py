@@ -77,6 +77,8 @@ class SequentialPriceTask(TorchDatasetTask):
         prompt_config: PromptConfig,
         batch_size : int,
         profit_maximisation=True, # <- may depend on prompt config (i.e., do we say in prompt "Maximise Profit" or just "Win the sale")
+        t_weight: float = 0.5, 
+        l_weight: int = 10,
     ):
         super().__init__(dataset=dataset, 
                          language_aspect=language_aspect,
@@ -90,6 +92,8 @@ class SequentialPriceTask(TorchDatasetTask):
             prompt_config.answer_format_instruction + '\n\n' +
             prompt_config.task_examples + '\n\n'
         )
+        self.t_weight = t_weight 
+        self.t_weight = t_weight 
 
     def generate_prompt(self, index: int) -> str:
         """
