@@ -150,7 +150,7 @@ class BaseModel(metaclass=ABCMeta):
         if self.lora:
             lora_config = LoraConfig(
                 task_type="CAUSAL_LM",
-                target_modules=["q_proj", "v_proj"],
+                target_modules=["q_proj", "k_proj", "v_proj", "dense"], #We should experiment with these
                 **self.model_config.lora_params
             )
             model = AutoModelForCausalLMWithValueHead.from_pretrained(
