@@ -610,22 +610,6 @@ class PPOTrainer(BaseTrainer):
         
             with unwrap_model_for_generation(self.model, self.accelerator) as unwrapped_model:
                 response = unwrapped_model.generate(input_ids=query_tensor.unsqueeze(dim=0), **generation_kwargs)
-
-            if generate_ref_response:
-                with unwrap_model_for_generation(
-                    ref_model, self.accelerator, is_peft_model=self.is_peft_model
-                ) as unwrapped_model:
-                    ref_response = unwrapped_model.generate(
-                        input_ids=query_tensor.unsqueeze(dim=0), **generation_kwargs
-                    )
-
-            if not return_prompt and not self.is_encoder_decoder:
-                response = response[:, query_tensor.shape[0] :]
-                if generate_ref_response:
-                    ref_response = ref_response[:, query_tensor.shape[0] :]
-
-        if generate_ref_response:
-            return response, ref_response
         return response
 
     def _generate_batched(
