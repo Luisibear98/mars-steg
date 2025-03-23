@@ -336,7 +336,8 @@ def train(ppo_config, model_config, optimizer_config, train_config, generation_c
             # Save the model every 'save_frequency' batches.
             if batch_ticker % train_config.save_frequency == 0:
                 if ppo_trainer.accelerator.is_main_process:
-                    ppo_trainer.save_pretrained(model_config.model_save_path)
+                    # ppo_trainer.save_pretrained(model_config.model_save_path)
+                    ppo_trainer.model.peft_model.save_pretrained(model_config.model_save_path)
 
             batch_ticker += 1
 

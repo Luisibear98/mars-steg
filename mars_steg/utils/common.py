@@ -283,7 +283,7 @@ def get_optimizer(
             lr=optimizer_config.learning_rate,
             weight_decay=optimizer_config.weight_decay,
             eps= optimizer_config.adam_epsilon,
-            fused=True
+            fused=True,
         )
         return optimizer
 

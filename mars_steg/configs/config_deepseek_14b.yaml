@@ -11,8 +11,8 @@ Model:
 Optimizer:
   optimizer_name: "adam"
   learning_rate: 2.0e-5
-  weight_decay: 0.01
-  adam_epsilon: 1.0e-8
+  weight_decay: 0.001
+  adam_epsilon: 1.0e-6
   warmup_steps: 500
   max_grad_norm: 1.0
 
@@ -38,7 +38,7 @@ Train:
   curriculum_threshold : 0.8 # Threshold indicating whether to decrease max_token_length when using c_length_penalisation
   max_length_decreasing_rate: 0.1 #Rate of decreasing max_token_length when using c_length_penalisation
   is_peft_model: True # Wheter we are using peft model
-  init_kl_coef: 0.05 #float value to initiate the kl coef (constant for adap_kl_ctrl: False or init value for adaptative KL otherwise)
+  init_kl_coef: 0.1 #float value to initiate the kl coef (constant for adap_kl_ctrl: False or init value for adaptative KL otherwise)
   adap_kl_ctrl: False # wheter to use a constant or adaptative KL control
   lora_unload_measurement : False # wheter to use the lora unloading measurement
 
