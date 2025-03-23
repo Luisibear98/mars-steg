@@ -154,7 +154,7 @@ class SequentialPriceTask(TorchDatasetTask):
             warnings.warn(f"Failed to parse P2 price proposals for this example : {p2_bid_str}. Returning 0.0 as a task_score")
             return 0.0
 
-        p2_bid = float(all_float_prices[-1])
+        p2_bid = round(float(all_float_prices[-1]), 1)
 
         if p2_cost < p1_bid:  # Where P2 can make profit case 
 
