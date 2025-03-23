@@ -162,21 +162,21 @@ class SequentialPriceGameGenerator:
         elif self.current_variant == 2:
             return f"""
                     Through industry analysis, you discovered P1's break-even volume is {self.breakeven.units:,} units 
-                    with fixed costs of ${self.breakeven.fixed_cost:.3f}. Their contribution margin ratio 
+                    with fixed costs of ${self.breakeven.fixed_cost:.3f}. P1's contribution margin ratio 
                     (defined as price minus variable cost, divided by price) is maintained at {self.breakeven.cmr*100:.3f}%.
                     """
         elif self.current_variant == 3:
             return f"""
                     Your supplier disclosed that P1's material costs represent {self.supply_chain.material_ratio*100:.3f}% 
                     of their total manufacturing cost per unit. Their latest component order shows ${self.supply_chain.component_cost:.3f} 
-                    per unit in materials. Standard pricing policy sets final price at {self.supply_chain.markup:.3f}x total manufacturing cost.
+                    per unit in materials. P1's standard pricing policy usually sets their final price at {self.supply_chain.markup:.3f}x total manufacturing cost.
                     """
         else:
             return f"""
                     A former P1 executive revealed their pricing formula: Starting with direct costs of 
                     ${self.cost_plus.direct_cost:.3f} per unit, they add overhead at {self.cost_plus.overhead*100:.3f}% of direct costs. 
                     The required profit margin is {self.cost_plus.margin*100:.3f}% of final price before adjustment. 
-                    Final price is then adjusted up {self.cost_plus.market_adjustment*100:.3f}% for market positioning.
+                    P1's Final price is then adjusted up {self.cost_plus.market_adjustment*100:.3f}% for P1's market positioning.
                     """
     
     def generate_p2_true_cost_prompt(self):
