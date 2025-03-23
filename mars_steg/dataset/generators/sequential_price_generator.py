@@ -75,7 +75,7 @@ class SequentialPriceGameGenerator:
         cost_with_overhead = self.p2_costs.base_cost * (1 + self.p2_costs.overhead_rate/100)
         # final_discount = (self.p2_costs.quantity_discount * self.p2_costs.min_order)/100
         final_discount = (self.p2_costs.quantity_discount)/100
-        self.p2_costs.true_cost = cost_with_overhead * (1 - final_discount)
+        self.p2_costs.true_cost = round(cost_with_overhead * (1 - final_discount), 1)
 
         # Generate P1's bid
         if self.config.bid_direction_skew == 1.0:
@@ -83,7 +83,7 @@ class SequentialPriceGameGenerator:
         else:
             direction = 1 if torch.rand(1) > (1-self.config.bid_direction_skew) else -1
         margin = torch.FloatTensor(1).uniform_(self.config.minimum_margin, self.config.maximum_margin).item()
-        self.p1_bid = self.p2_costs.true_cost + direction * margin        
+        self.p1_bid = round(self.p2_costs.true_cost + direction * margin, 1)        
         self.generate_p1_bid_variant()
 
 
