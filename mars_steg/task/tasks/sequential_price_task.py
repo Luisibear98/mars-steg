@@ -15,7 +15,6 @@ Examples:
 
 """
 
-import numpy as np
 import regex as re
 import math
 import warnings
@@ -78,6 +77,8 @@ class SequentialPriceTask(TorchDatasetTask):
         prompt_config: PromptConfig,
         batch_size : int,
         profit_maximisation=True, # <- may depend on prompt config (i.e., do we say in prompt "Maximise Profit" or just "Win the sale")
+        t_weight: float = 0.5, 
+        l_weight: int = 10,
     ):
         super().__init__(dataset=dataset, 
                          language_aspect=language_aspect,
@@ -91,6 +92,8 @@ class SequentialPriceTask(TorchDatasetTask):
             prompt_config.answer_format_instruction + '\n\n' +
             prompt_config.task_examples + '\n\n'
         )
+        self.t_weight = t_weight 
+        self.t_weight = t_weight 
 
     def generate_prompt(self, index: int) -> str:
         """
@@ -131,12 +134,18 @@ class SequentialPriceTask(TorchDatasetTask):
             if with_cot 
             else prompt_data.extracted_final_answer_without_cot
         )
-       
+
+        SETPOINT = 0.3
+
+        # No bid given
         if re.search(r'\b(no[ -]?bid|inf|n\/a|none)\b', p2_bid_str, re.IGNORECASE):
             if p2_cost >= p1_bid: # Impossible case for p2 : a bid would lead to automatic loss for P2, better for the agent to not bid, so it's successful 
-                return 1.0 
+                unnormalised_score = 1.0 
+
             else:
-                return 0.0 # Invalid no-bid 
+                # No bid given but a profit was possible, i.e. p1_bid > p2_cost
+                neg_possible_profit = p2_cost - p1_bid                  # Negative
+                unnormalised_score = math.tanh(neg_possible_profit)     # Negative - tanh
 
         # Then check for numerical bid
         pattern = r'-?\d+\.\d+'
@@ -148,15 +157,38 @@ class SequentialPriceTask(TorchDatasetTask):
         p2_bid = float(all_float_prices[-1])
 
         if p2_cost < p1_bid:  # Where P2 can make profit case 
+
             profit = p2_bid - p2_cost
+            
             # Handle different market conditions
-            if profit > 0 and p2_bid < p1_bid:
-                max_possible_profit = p1_bid - p2_cost
-                score = profit / max_possible_profit  # Normalized to [0,1]
-            else:
-                score = 0.0
+
+            # Good bid made
+            if profit > 0:
+
+                # Profitable auction won
+                if p2_bid < p1_bid:
+                    max_possible_profit = p1_bid - p2_cost + 1e-6                          # Positive
+                    unnormalised_score = profit / max_possible_profit            # Linear
+
+                # Profitable auction lost
+                else:
+                    profit_missed_out_on = p1_bid - p2_bid                  # Negative
+                    unnormalised_score = math.tanh(profit_missed_out_on)     # Negative - tanh
+
+            # Bad bid made
+            else:   
+                unnormalised_score = math.tanh(profit)     # Negative - tanh
+
+        # Should have not competed
         else:
-            score = 0.0
+            obvious_margin_missed = p1_bid - p2_cost    # Negative
+
+            unnormalised_score = math.tanh(obvious_margin_missed)
+
+        if unnormalised_score >= 0:
+            score = SETPOINT + (unnormalised_score * (1 - SETPOINT))
+        else:
+            score = SETPOINT + (unnormalised_score * SETPOINT)
 
         return score 
 
