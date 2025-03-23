@@ -148,7 +148,7 @@ class SequentialPriceTask(TorchDatasetTask):
                 unnormalised_score = math.tanh(neg_possible_profit)     # Negative - tanh
 
         # Then check for numerical bid
-        pattern = r'-?\d+\.\d+'
+        pattern = r'\d+(?:\.\d+)?'
         all_float_prices = re.findall(pattern, p2_bid_str)
         if not all_float_prices:
             warnings.warn(f"Failed to parse P2 price proposals for this example : {p2_bid_str}. Returning 0.0 as a task_score")
@@ -166,7 +166,7 @@ class SequentialPriceTask(TorchDatasetTask):
             if profit > 0:
 
                 # Profitable auction won
-                if p2_bid < p1_bid:
+                if p2_bid <= p1_bid:
                     max_possible_profit = p1_bid - p2_cost + 1e-6                          # Positive
                     unnormalised_score = profit / max_possible_profit            # Linear
 
