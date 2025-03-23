@@ -9,9 +9,9 @@ parameters:
   learning_rate:
     values: [8e-6, 6e-6, 4e-6]
   batch_size:
-    values: [8]
+    values: [1]
   gradient_accumulation_steps:
-    values: [4]
+    values: [1]
   mini_batch_size:
     values: [1]
   curriculum_threshold : 
