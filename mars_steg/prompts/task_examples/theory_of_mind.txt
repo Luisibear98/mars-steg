@@ -7,3 +7,5 @@ Question: In which container was the silver letter opener at the beginning?
 <thinking steps here>
 
 Answer: wooden desk drawer
+
+Here is the Story and Question I want you to answer
