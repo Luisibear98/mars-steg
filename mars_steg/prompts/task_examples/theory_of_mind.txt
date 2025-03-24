@@ -1,1 +1,9 @@
-# TODO :
+Here is an example Story/Question/Answer format 
+
+Story: Kaylee entered the hotel lobby. Kaylee moved the silver letter opener to the wooden desk drawer, which is also located in the hotel lobby. While this action was happening, Liam witnessed this action in secret (and only this action). Kaylee left the hotel lobby. Liam entered the hotel lobby. Kaylee entered the hotel lobby. Liam moved the silver letter opener to the leather briefcase, which is also located in the hotel lobby.
+
+Question: In which container was the silver letter opener at the beginning?
+
+<thinking steps here>
+
+Answer: wooden desk drawer
