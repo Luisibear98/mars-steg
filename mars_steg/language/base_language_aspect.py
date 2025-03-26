@@ -55,7 +55,7 @@ class EmptyLanguageAspect(LanguageAspect):
 
     uses_local_neural_overseer = False
 
-    compatible_tasks = {'SequentialPriceTask'}
+    compatible_tasks = {'SequentialPriceTask', 'TheoryOfMindTask'}
 
     def __init__(self, **kwargs):
         super().__init__()
@@ -71,7 +71,7 @@ class CoTLengthPenalisation(LanguageAspect):
 
     uses_local_neural_overseer = False
 
-    compatible_tasks = {'SequentialPriceTask'}
+    compatible_tasks = {'SequentialPriceTask', 'TheoryOfMindTask'}
 
     def __init__(self, **kwargs):
         self.max_new_tokens_threshold = kwargs["max_new_tokens_threshold"]
