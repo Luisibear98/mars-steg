@@ -318,12 +318,6 @@ class BaseModel(metaclass=ABCMeta):
                 for user_prompt, assistant_prompt in zip(user_prompts, assistant_prompts)
             ]
 
-                        
-
-
-            
-
-
         return batch_messages
 
     def full_generate(self, 

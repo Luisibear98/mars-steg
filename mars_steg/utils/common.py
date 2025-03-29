@@ -52,6 +52,7 @@ def get_dataloaders_and_ref_model(
     neural_overseer_model: Optional[BaseModel] = None,
     neural_assessor_model: Optional[BaseModel] = None,
     device_map: Optional[Dict] = None,
+    test_train_split_kwargs: Optional[Dict] = {}
 ):
     """
 
@@ -180,7 +181,8 @@ def get_dataloaders_and_ref_model(
 
     train_dataset, val_dataset, test_dataset = task_class.test_train_split(
         train_proportion=train_proportion,
-        validation_proportion=validation_proportion
+        validation_proportion=validation_proportion,
+        **test_train_split_kwargs
     )
 
     train_loader = DataLoader(

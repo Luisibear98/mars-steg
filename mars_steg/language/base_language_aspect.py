@@ -81,3 +81,5 @@ class CoTLengthPenalisation(LanguageAspect):
         penalization_cot_length = math.tanh(2 * ratio) # tanh(2) approx 0.964027
         return math.sqrt(1.0 - penalization_cot_length)
 
+
+
