@@ -436,6 +436,8 @@ class TrainConfig:
     init_kl_coef: float 
     adap_kl_ctrl: bool 
     lora_unload_measurement : bool 
+    t_weight: float
+    l_weight: float
 
 @dataclass
 class GenerationConfig:

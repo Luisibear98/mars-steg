@@ -1,3 +1,5 @@
 Train:
   train_proportion: 0.7  # The proportion of names in the training data
   validation_proportion: 0.00  # fails otherwise
+  t_weight: 1.0
+  l_weight: 3.0

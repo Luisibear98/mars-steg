@@ -180,8 +180,8 @@ def train(ppo_config, model_config, optimizer_config, train_config, generation_c
                 transcript_responses=transcript_responses, 
                 train_dataset=train_dataset,
                 skipping_failed_parsing_examples = train_config.skipping_failed_parsing_examples,
-                t_weight=experiment_args.dataset_class_kwargs["t_weight"],
-                l_weight=experiment_args.dataset_class_kwargs["l_weight"],
+                t_weight=train_config.t_weight,
+                l_weight=train_config.l_weight,
             )
 
             log_merged_batch_wandb([batch_prompt_datas], epoch = epoch, batch_in_epoch = batch_ticker)
@@ -311,8 +311,8 @@ def train(ppo_config, model_config, optimizer_config, train_config, generation_c
                     transcript_responses=transcript_responses, 
                     train_dataset=train_dataset,
                     skipping_failed_parsing_examples = train_config.skipping_failed_parsing_examples,
-                    t_weight=experiment_args.dataset_class_kwargs["t_weight"],
-                    l_weight=experiment_args.dataset_class_kwargs["l_weight"],
+                    t_weight=train_config.t_weight,
+                    l_weight=train_config.l_weight,
                 )
 
                 wandb.log(

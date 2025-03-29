@@ -22,5 +22,7 @@ parameters:
     values: ["experiments/c_length_penalisation/1_collusion.yaml"]
   default_config_path:
     values: ["mars_steg/configs/config_deepseek_1pt5b.yaml"]
+  overwrite_config_path:
+    values: ["experiments/c_length_penalisation/overwrite_weight.yaml"] # XXX: Should have t_weight and l_weight as sweep values!
   prompt_config_path:
     values: ["mars_steg/configs/prompt/price_training_deepseek.yaml"]

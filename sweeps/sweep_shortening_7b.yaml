@@ -20,6 +20,8 @@ parameters:
     values: [0.3, 0.2]
   experiment_args_path:
     values: ["experiments/c_length_penalisation/1_collusion.yaml"]
+  overwrite_config_path:
+    values: ["experiments/c_length_penalisation/overwrite_weight.yaml"] # XXX: Should have t_weight and l_weight as sweep values!
   default_config_path:
     values: ["mars_steg/configs/config_deepseek_7b.yaml"]
   prompt_config_path:
