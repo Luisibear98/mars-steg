@@ -190,15 +190,6 @@ def train(ppo_config, model_config, optimizer_config, train_config, generation_c
                 warnings.warn("All feedbacks (get_task_score and/or get_language_score) failed to parse. Skipping the optimisation for this batch of examples")
                 continue
 
-            if sum(composite_reward_list)/len(composite_reward_list) >= train_config.curriculum_threshold:
-                train_dataset.language_aspect.max_new_tokens_threshold = (
-                    train_dataset.language_aspect.max_new_tokens_threshold * (1 - train_config.max_length_decreasing_rate)
-                )
-                print("--------------------------------")
-                print(f"Decreasing Max token Length of {train_config.max_length_decreasing_rate}")
-                print(f"Current max token length : {train_dataset.language_aspect.max_new_tokens_threshold}")
-                print("--------------------------------")
-
             print("--------")
             print(f"Rewarding example with {composite_reward_list}")
             print(f"Task score: {task_score_list}")
