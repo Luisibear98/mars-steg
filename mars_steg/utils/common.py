@@ -557,10 +557,6 @@ def get_rewards_and_training_datas(
                 print(f"LLMTranscriptExtractionError occurred: {str(e)}")
                 traceback.print_exc()
                 continue
-            except Exception as e:
-                print(f"Other error occurred: {str(e)}")
-                traceback.print_exc()
-                continue
 
         composite_reward_list.append(t.tensor(composite_reward))
         task_score_list.append(task_score)

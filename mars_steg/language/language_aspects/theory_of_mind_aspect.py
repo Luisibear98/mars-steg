@@ -40,7 +40,9 @@ class ToMTokenBanTask(LanguageAspect):
         cot = prompt_data.extracted_cot
 
         # TODO: 2025.03.29 - make string matches work with multiple strings
-        import pdb; pdb.set_trace()
+        n_string_matches = 0
+        for penalise_substring in self.penalise_substrings:
+            n_string_matches += cot.count(penalise_substring)
 
         # We want to drive down the number of equals signs
         # We will punish based on use up to a maximum number of times
