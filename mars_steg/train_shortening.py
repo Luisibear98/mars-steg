@@ -317,7 +317,9 @@ def train(ppo_config, model_config, optimizer_config, train_config, generation_c
 
             # Log stats to wandb.
             # import pdb; pdb.set_trace(header = "2025.02.25: associate this with a epoch and batch ticker")
-            wandb.log(stats)            
+            wandb.log(stats)
+
+            ppo_trainer.model.pretrained_model.save_pretrained( "./_lora")  # Saves only LoRA            exit()            
             wandb.log(
                 {   
                     'epoch': epoch,
@@ -334,9 +336,14 @@ def train(ppo_config, model_config, optimizer_config, train_config, generation_c
                 torch.cuda.empty_cache() 
 
             # Save the model every 'save_frequency' batches.
+            print(batch_ticker % train_config.save_frequency)
             if batch_ticker % train_config.save_frequency == 0:
                 if ppo_trainer.accelerator.is_main_process:
-                    ppo_trainer.save_pretrained(model_config.model_save_path)
+                    save_path = f"experiment_lora_cache"
+                    ppo_trainer.model.pretrained_model.save_pretrained(save_path)
+                    artifact = wandb.Artifact(name=f"model_{batch_ticker}", type="model")
+                    artifact.add_dir(save_path)  # Adds the entire folder
+                    wandb.log_artifact(artifact)
 
             batch_ticker += 1
 
