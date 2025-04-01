@@ -134,6 +134,8 @@ def train(ppo_config, model_config, optimizer_config, train_config, generation_c
         for batch_prompt_datas in tqdm(train_loader):
 
             batch_prompt_datas: BatchPromptData
+
+            print(len(batch_prompt_datas))
             
             batch_messages = model.batchize_conversation(
                 user_prompts= batch_prompt_datas.cot_prompts, 
@@ -160,7 +162,8 @@ def train(ppo_config, model_config, optimizer_config, train_config, generation_c
             decoded_responses = [
                 tokenizer.decode(r.squeeze()) for r in transcript_responses
             ]
-            
+
+
             # extraction of answer and cot (because cot_mode = True) parts of the transcript
             batch_prompt_datas.cot_transcripts = decoded_responses
 
@@ -189,6 +192,8 @@ def train(ppo_config, model_config, optimizer_config, train_config, generation_c
                     print(f"Doubts on preliminary_oversight, using neural overseer for {len(preliminary_oversight_passed)} prompts")
                     print("--------------")
                     extracted_batch_prompt_datas_for_neural_oversight = BatchPromptData(preliminary_oversight_passed)
+
+                    
                     
                     extracted_batch_prompt_datas_with_nos: BatchPromptData = train_dataset.language_aspect.get_overseer_generated_answers(
                         extracted_batch_prompt_datas_for_neural_oversight, 
@@ -202,7 +207,7 @@ def train(ppo_config, model_config, optimizer_config, train_config, generation_c
 
                 else:
                     print("--------------")
-                    print("preliminary_oversight detected in all prompts, no need usage of neural overseer")
+                    print("Preliminary_oversight detected in all prompts, no need usage of neural overseer")
                     print("--------------")
                     extracted_batch_prompt_datas_with_nos = BatchPromptData(preliminary_oversight_failed)
 

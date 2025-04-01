@@ -1,5 +1,8 @@
+from __future__ import annotations
+
 import torch as t
 import numpy as np
+import os
 import random
 from torch import nn
 import torch
@@ -23,7 +26,7 @@ from transformers.integrations.deepspeed import is_deepspeed_zero3_enabled
 
 from torch.utils.data import DataLoader
 
-from mars_steg.utils.prompt_data import BatchPromptData
+from mars_steg.utils.prompt_data import BatchPromptData, PromptData
 
 from mars_steg import task
 from mars_steg import language
@@ -33,8 +36,15 @@ from mars_steg.language import LanguageAspect
 from trl import create_reference_model, PPOTrainer
 
 from accelerate import Accelerator
-accelerate = Accelerator()
-DEVICE =  accelerate.device
+accelerator = Accelerator()
+DEVICE =  accelerator.device
+
+if any(key.startswith("ACCELERATE_") for key in os.environ.keys()):
+    print("Accelerate is managing the execution.")
+    is_accelerate_used = True
+else:
+    print("No Accelerate configuration found.")
+    is_accelerate_used = False
 
 def get_dataloaders_and_ref_model(
     dataset_class_name: str,
@@ -135,13 +145,23 @@ def get_dataloaders_and_ref_model(
     if language_aspect_class.uses_local_neural_overseer and need_reference_model:
         print("----------------------------")
         print("Using local overseer")
-        print(f"device {device_map['overseer']}")
+        if not is_accelerate_used:
+            print(f"device {device_map['overseer']}")
+        else:
+            print(f"device cpu")
         print("----------------------------")
-        ref_model_class: BaseModel = training_model.duplicate(None, device_map["overseer"], precision_override="full")
+        
+        ref_model_class: BaseModel = training_model.duplicate(
+            None, 
+            device_map["overseer"] if not is_accelerate_used else "cpu", 
+            precision_override="full")
         reference_model = ref_model_class.model
 
     elif task_class.uses_local_neural_assessor and need_reference_model:
-        ref_model_class: BaseModel = training_model.duplicate(None, device_map["assessor"], precision_override="full")
+        ref_model_class: BaseModel = training_model.duplicate(
+            None, 
+            device_map["assessor"] if not is_accelerate_used else "cpu", 
+            precision_override="full")
         reference_model = ref_model_class.model
         
     elif not language_aspect_class.uses_local_neural_overseer and need_reference_model and not is_deepspeed_zero3_enabled():
@@ -479,6 +499,7 @@ def get_rewards_and_training_datas(
         skipping_failed_parsing_examples: Optional[bool] = True,
         t_weight: float = 1.0, 
         l_weight: float = 1.0,
+        use_temporal_penalization: Optional[bool] = True,
         ) -> Tuple[List]:
     
     """
@@ -506,6 +527,8 @@ def get_rewards_and_training_datas(
         The weight assigned to the language score (default is 1.0).
     skipping_failed_parsing_examples: bool
         Skip examples that failed when parsing them for task score, language score, answer extraction, CoT extraction etc
+    use_temporal_penalization: bool
+       Wether to use temporal penalisation for specific tokens
 
 
     Returns
@@ -527,8 +550,13 @@ def get_rewards_and_training_datas(
     composite_reward_list, task_score_list, language_score_list = [], [], []
     train_query_tensors = []
     train_transcript_responses = []
+    if use_temporal_penalization:
+        training_penalization_tensors = []
+    else:
+        training_penalization_tensors = None
 
     for i, prompt_data in tqdm(enumerate(batch_prompt_datas)):
+        prompt_data: PromptData
 
         # Original model extraction failed - penalise if required
         if None in [
@@ -563,11 +591,13 @@ def get_rewards_and_training_datas(
         language_score_list.append(language_score)
         train_query_tensors.append(query_tensors[i])
         train_transcript_responses.append(transcript_responses[i])
+        if use_temporal_penalization:
+            training_penalization_tensors.append(prompt_data.local_penalisation)
         prompt_data.task_score = task_score
         prompt_data.language_score = language_score
         prompt_data.composite_reward = composite_reward
 
-    return composite_reward_list, task_score_list, language_score_list, train_query_tensors, train_transcript_responses
+    return composite_reward_list, task_score_list, language_score_list, train_query_tensors, train_transcript_responses, training_penalization_tensors
 
 
 def evaluate_cot_gap_summary(

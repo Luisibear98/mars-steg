@@ -1,3 +1,4 @@
+from __future__ import annotations
 from abc import ABC
 from typing import List, Optional, Iterable
 from dataclasses import dataclass, asdict
@@ -6,7 +7,6 @@ import pandas as pd
 import os
 import json
 from torch import Tensor as _T
-
 import wandb
 
 
@@ -117,6 +117,7 @@ class PromptData:
     composite_reward : Optional[float] = None #Composite Reward for the concern prompt
 
     preliminary_language_score: Optional[float] = None  # Output of NeuralOverseer.do_preliminary_oversight
+    local_penalisation : Optional[_T] = None #Tensor of bool representating the local penalisation
 
     def __str__(self) -> str:
 
@@ -143,9 +144,10 @@ class PromptData:
             f"extracted_overseer_answer: {self.extracted_overseer_answer}\n"
             f"assessor_transcript: {self.assessor_transcript}\n"
             f"extracted_assessor_answer: {self.extracted_assessor_answer}\n"
-            f"task_score {self.task_score} \n"
-            f"language_score {self.language_score} \n"
-            f"composite_reward {self.composite_reward} \n"
+            f"task_score: {self.task_score} \n"
+            f"language_score: {self.language_score} \n"
+            f"composite_reward: {self.composite_reward} \n"
+            f"local_penalisation: {self.local_penalisation} \n"
         )
 
 
@@ -186,6 +188,7 @@ class BatchPromptData:
         self.task_scores : Optional[List[float]]  # Task Score list for the concern prompt 
         self.language_scores : Optional[List[float]]  # Language Score list for the concern prompt
         self.composite_rewards : Optional[List[float]]  #Composite Reward list for the concern prompt
+        self.local_penalisations : Optional[List[_T]] #List of tensors of bool representating the local penalisation
 
     def __len__(self):
         return len(self.prompt_datas)
@@ -255,6 +258,8 @@ class BatchPromptData:
     def create_data_frame(self):
         data = []
         members_as_dicts = [asdict(pd) for pd in self.prompt_datas]
+        for member in members_as_dicts:
+            del member["local_penalisation"]
         columns = list(members_as_dicts[0].keys())
         
         # Populate data with values from each dictionary in members_as_dicts

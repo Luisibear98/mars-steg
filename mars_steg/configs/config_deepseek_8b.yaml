@@ -39,6 +39,7 @@ Train:
   init_kl_coef: 0.05 #float value to initiate the kl coef (constant for adap_kl_ctrl: False or init value for adaptative KL otherwise)
   adap_kl_ctrl: False # wheter to use a constant or adaptative KL control
   lora_unload_measurement : False # wheter to use the lora unloading measurement
+  use_temporal_penalization: True #Wheter to use local penalization on unwanted tokens
 
 Generation:
   min_length: 0

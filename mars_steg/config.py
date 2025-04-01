@@ -402,6 +402,8 @@ class TrainConfig:
         wheter to use a constant or adaptative KL control
     lora_unload_measurement : bool 
         wheter to use the lora unloading measurement
+    use_temporal_penalization: bool
+        Wheter to use local penalization on unwanted tokens
 
 
     Notes
@@ -438,6 +440,7 @@ class TrainConfig:
     lora_unload_measurement : bool 
     t_weight: float
     l_weight: float
+    use_temporal_penalization: bool
 
 @dataclass
 class GenerationConfig:

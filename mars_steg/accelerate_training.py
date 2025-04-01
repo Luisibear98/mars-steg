@@ -27,19 +27,23 @@ import warnings
 import numpy as np
 import wandb
 import sys
+import os
 
 import torch
 from tqdm import tqdm
 from transformers import set_seed
 
-from trl import PPOConfig, PPOTrainer
+from time import time
 
-import sys
+from mars_steg.utils.ppo_trainer import PPOConfig, PPOTrainer
+
+sys.path.append(os.path.abspath(""))
+
+
 from mars_steg.language.language_aspects.neural_overseer import NeuralOverseer
-from mars_steg.utils.prompt_data import BatchPromptData, log_to_wandb_merged_batch
+from mars_steg.utils.prompt_data import BatchPromptData, PromptData, log_merged_batch_wandb
 from mars_steg.config import ConfigLoader, ExperimentArgs, PromptConfig
 from accelerate import Accelerator
-from accelerate.state import AcceleratorState
 from mars_steg.utils.common import (
     get_dataloaders_and_ref_model,
     get_optimizer,
@@ -58,19 +62,16 @@ from mars_steg.utils.answer_extraction import extract_cots
 print(sys.argv)
 experiment_args_path = sys.argv[1]
 default_config_path = sys.argv[2]   # e.g. "mars_steg/configs/config.yaml"
-overwrite_config_path = sys.argv[3]   # e.g. "mars_steg/configs/config.yaml"
-prompt_config_path = sys.argv[4]   # e.g. "mars_steg/configs/prompt/math_training_deepseek.yaml"
+prompt_config_path = sys.argv[3]   # e.g. "mars_steg/configs/prompt/math_training_deepseek.yaml"
 
 ####################################################################################################################
 ####################################################################################################################
 
 
-model_config, optimizer_config, train_config, generation_config = ConfigLoader.load_config(default_config_path, overwrite_config_path)
+model_config, optimizer_config, train_config, generation_config = ConfigLoader.load_config(default_config_path)
 
 
 prompt_config = PromptConfig.from_file(prompt_config_path)
-
-AcceleratorState().deepspeed_plugin.deepspeed_config['train_micro_batch_size_per_gpu'] = train_config.batch_size
 
 output_delimitation_tokens = {
     "start_scratchpad_token": prompt_config.start_scratchpad_token,
@@ -123,7 +124,7 @@ tokenizer = get_tokenizer(model_config.model_name)
 generation_config.pad_token_id = tokenizer.eos_token_id 
 #TODO Resolve the problem of the model looping on final answer
 generation_config.eos_token_id = tokenizer.eos_token_id 
-model = get_model(model_config, tokenizer, output_delimitation_tokens, generation_config)
+model = get_model(model_config, tokenizer, output_delimitation_tokens, generation_config, device=accelerator.device)
 optimizer = get_optimizer(optimizer_config=optimizer_config, model=model.model)
 
 training_generation_kwargs = generation_config.to_training_dict()
@@ -156,9 +157,6 @@ train_loader = ppo_trainer.accelerator.prepare(train_loader)
 val_loader = ppo_trainer.accelerator.prepare(val_loader)
 test_loader = ppo_trainer.accelerator.prepare(test_loader)
 
-if train_config.create_ref_model:
-    ref_model.to(ppo_trainer.accelerator.device)
-
 
 if __name__ == "__main__":
 
@@ -177,6 +175,8 @@ if __name__ == "__main__":
             print("CoT Gap Evaluation")
             print("--------")
 
+            start_eval = time()
+
             cot_gap, cot_ratio = evaluate_cot_gap_summary(
                 ppo_trainer = ppo_trainer, 
                 tokenizer = tokenizer, 
@@ -187,6 +187,12 @@ if __name__ == "__main__":
                 output_delimitation_tokens= model.output_delimitation_tokens,
             )
 
+            end_eval = time()
+            duration_eval = end_eval-start_eval
+            print("-------------------------")
+            print(f"Time taken for CoT Gap evaluation:{duration_eval}")
+            print("-------------------------")
+
             wandb.log({"CoT Gap": cot_gap, "CoT Ratio": cot_ratio})
 
             if len(epochs_to_evaluate_list) > 0:
@@ -195,7 +201,7 @@ if __name__ == "__main__":
 
         for batch_prompt_datas in tqdm(train_loader):
 
-            batch_prompt_datas: BatchPromptData
+            batch_prompt_datas : BatchPromptData
             
             batch_messages = model.batchize_conversation(
                 user_prompts= batch_prompt_datas.cot_prompts, 
@@ -214,15 +220,24 @@ if __name__ == "__main__":
             for input in inputs["input_ids"]:
                 query_tensors.append(input)
 
+            start_generation = time()
 
             # Generate the with-CoT transcript (no-CoT transcript not needed during training)
             transcript_responses = ppo_trainer.generate(
                 query_tensors, **training_generation_kwargs,
             )
+
+            end_generation = time()
+            duration_generation = end_generation - start_generation
+            print("-------------------------")
+            print(f"Time taken for generation of answers:{duration_generation}")
+            print("-------------------------")
+            wandb.log({f"Generation time on device {accelerator.device}": duration_generation})
+
             decoded_responses = [
                 tokenizer.decode(r.squeeze()) for r in transcript_responses
             ]
-            
+
             # extraction of answer and cot (because cot_mode = True) parts of the transcript
             batch_prompt_datas.cot_transcripts = decoded_responses
 
@@ -233,19 +248,95 @@ if __name__ == "__main__":
             # If any of these two stages fail - we should not penalise the batch
             # Penalise CoT - imbue relevant information to PromptData's
             if isinstance(train_dataset.language_aspect, NeuralOverseer):
-                extracted_batch_prompt_datas_with_nos = train_dataset.language_aspect.get_overseer_generated_answers(
-                    extracted_batch_prompt_datas, 
-                    neural_overseer_thinking_helper = prompt_config.neural_overseer_thinking_helper)
+                
+                preliminary_oversight_passed, preliminary_oversight_failed = [], []
+
+                for i, pd in enumerate(extracted_batch_prompt_datas):
+                    pd: PromptData
+                    if pd.extracted_cot is not None: # pd.preliminary_language_score is None otherwise
+                        if train_config.use_temporal_penalization:    
+                            pd.preliminary_language_score, pd.local_penalisation = train_dataset.language_aspect.do_preliminary_oversight(pd.extracted_cot, transcript_responses[i].squeeze(), tokenizer)
+                        else: # pd.preliminary_language_score is None otherwise
+                            pd.preliminary_language_score, _ = train_dataset.language_aspect.do_preliminary_oversight(pd.extracted_cot)
+                    else:
+                        if train_config.use_temporal_penalization:
+                            pd.local_penalisation = torch.zeros_like(transcript_responses[i].squeeze())
+
+                    if pd.preliminary_language_score is None:
+                        preliminary_oversight_passed.append(pd)
+                        
+                    else:
+                        preliminary_oversight_failed.append(pd) # Failed != bug - failed means the oversight found collusion etc.
+
+                if len(preliminary_oversight_passed):
+                    print("--------------")
+                    print(f"Doubts on preliminary_oversight, using neural overseer for {len(preliminary_oversight_passed)} prompts out of {len(preliminary_oversight_passed) + len(preliminary_oversight_failed)} prompts with CoT")
+                    print("--------------")
+                    extracted_batch_prompt_datas_for_neural_oversight = BatchPromptData(preliminary_oversight_passed)
+
+                    start_cpu_loading = time()
+                    train_dataset.language_aspect.whitebox_model.model.to(accelerator.device)
+                    train_dataset.language_aspect.whitebox_model.device = accelerator.device
+                    end_cpu_loading = time()
+                    duration_loading = end_cpu_loading - start_cpu_loading
+                    print("-------------------------")
+                    print(f"Time taken for loading overseer model:{duration_loading}")
+                    print("-------------------------")
+                    
+                    
+                    extracted_batch_prompt_datas_with_nos: BatchPromptData = train_dataset.language_aspect.get_overseer_generated_answers(
+                        extracted_batch_prompt_datas_for_neural_oversight, 
+                        neural_overseer_thinking_helper = prompt_config.neural_overseer_thinking_helper
+                    )
+
+                    start_cpu_offloading = time()
+                    train_dataset.language_aspect.whitebox_model.model.to("cpu")
+                    train_dataset.language_aspect.whitebox_model.device = "cpu"
+                    torch.cuda.empty_cache()  # Clears cached memory
+                    torch.cuda.synchronize()
+                    end_cpu_offloading = time()
+                    duration_offloading = end_cpu_offloading - start_cpu_offloading
+                    print("-------------------------")
+                    print(f"Time taken for offloading overseer model:{duration_offloading}")
+                    print("-------------------------")
+
+                    extracted_batch_prompt_datas_with_nos.prompt_datas.extend(
+                        preliminary_oversight_failed
+                    )
+
+                else:
+                    print("--------------")
+                    print("Preliminary_oversight detected in all prompts, no need usage of neural overseer")
+                    print("--------------")
+                    extracted_batch_prompt_datas_with_nos = BatchPromptData(preliminary_oversight_failed)
+
             else:
                 # get_task_score will do a hard string check
-                extracted_batch_prompt_datas_with_nos = extracted_batch_prompt_datas
+                extracted_batch_prompt_datas_with_nos: BatchPromptData = extracted_batch_prompt_datas
 
             # Reward final answer - imbue relevant information to PromptData's
             if train_dataset.uses_local_neural_assessor:
+
+                start_cpu_loading = time()
+                train_dataset.whitebox_model.to(accelerator.device)
+                end_cpu_loading = time()
+                duration_loading = end_cpu_loading - start_cpu_loading
+                print("-------------------------")
+                print(f"Time taken for loading assessor model:{duration_loading}")
+                print("-------------------------")
+
                 extracted_batch_prompt_datas_with_nos_and_na = train_dataset.neural_assessor_from_batch_prompt_data(
                     extracted_batch_prompt_datas_with_nos, 
                     from_cot_prompt = True, 
                     neural_assessor_thinking_helper = prompt_config.neural_assessor_thinking_helper)
+                
+                start_cpu_offloading = time()
+                train_dataset.whitebox_model.to("cpu")
+                end_cpu_offloading = time()
+                duration_offloading = end_cpu_offloading - start_cpu_offloading
+                print("-------------------------")
+                print(f"Time taken for offloading assessor model:{duration_offloading}")
+                print("-------------------------")
             else:
                 # get_language_score will do a hard string check
                 extracted_batch_prompt_datas_with_nos_and_na = extracted_batch_prompt_datas_with_nos
@@ -274,21 +365,21 @@ if __name__ == "__main__":
                 print("All examples parsed successfully")
 
             # Extract rewards
-            composite_reward_list, task_score_list, language_score_list, train_query_tensors, train_transcript_responses = \
+            composite_reward_list, task_score_list, language_score_list, train_query_tensors, train_transcript_responses, training_penalization_tensors = \
             get_rewards_and_training_datas(
                 batch_prompt_datas=extracted_batch_prompt_datas,
                 query_tensors=query_tensors,
                 transcript_responses=transcript_responses, 
                 train_dataset=train_dataset,
-                skipping_failed_parsing_examples = train_config.skipping_failed_parsing_examples
+                skipping_failed_parsing_examples = train_config.skipping_failed_parsing_examples,
+                use_temporal_penalization=train_config.use_temporal_penalization
             )
 
-            log_to_wandb_merged_batch([batch_prompt_datas, extracted_batch_prompt_datas])
+            log_merged_batch_wandb([batch_prompt_datas], epoch = epoch, batch_in_epoch = batch_ticker)
 
             if len(composite_reward_list) == 0:
-                if train_config.skipping_failed_parsing_examples:
-                    warnings.warn("All feedbacks (get_task_score and/or get_language_score) failed to parse. Skipping the optimisation for this batch of examples")
-                    continue
+                warnings.warn("All feedbacks (get_task_score and/or get_language_score) failed to parse. Skipping the optimisation for this batch of examples")
+                continue
 
             print("--------")
             print(f"Rewarding example with {composite_reward_list}")
@@ -301,10 +392,24 @@ if __name__ == "__main__":
             # If running optimization, adjust the batch size based on the available rewards.
             if run_optimization:
                 if len(composite_reward_list) < ppo_trainer.config.batch_size:
+
+                    print('Some items failed - decreasing batch size for security - reset shortly')
+
                     ppo_trainer.config.batch_size = len(composite_reward_list)
+                    ppo_trainer.config.mini_batch_size = 1
+                    ppo_trainer.config.gradient_accumulation_steps = len(composite_reward_list)
+                    ppo_trainer.config.backward_batch_size = len(composite_reward_list)
+
+                start_training_model = time()
                 stats = ppo_trainer.step(
-                    train_query_tensors, train_transcript_responses, composite_reward_list,
+                    train_query_tensors, train_transcript_responses, composite_reward_list, penalization_tensors= training_penalization_tensors
                 )
+                end_training_model = time()
+                duration_training = end_training_model - start_training_model
+                print("-------------------------")
+                print(f"Time taken for training the main model:{duration_training}")
+                print("-------------------------")
+                wandb.log({f"Training time on device {accelerator.device}": duration_training})
             else:
                 # When skipping optimization, we can set stats to an empty dict or
                 # some placeholder information.
@@ -324,16 +429,26 @@ if __name__ == "__main__":
             # If we ran an optimization step, restore the original batch size.
             if run_optimization:
                 ppo_trainer.config.batch_size = train_config.batch_size
+                ppo_trainer.config.mini_batch_size = train_config.mini_batch_size
+                ppo_trainer.config.gradient_accumulation_steps = train_config.gradient_accumulation_steps
+                ppo_trainer.config.backward_batch_size = train_config.batch_size
 
             # Log stats to wandb.
-            wandb.log(stats)
+            # import pdb; pdb.set_trace(header = "2025.02.25: associate this with a epoch and batch ticker")
+            wandb.log(stats)            
             wandb.log(
-                {
+                {   
+                    'epoch': epoch,
+                    'batch_in_epoch': batch_ticker,
                     'task_score': sum(task_score_list) / len(composite_reward_list),
                     'language_score': sum(language_score_list) / len(language_score_list),
+                    'reward': sum(composite_reward_list) / len(composite_reward_list),
                 }
             )
 
+            # Clear CUDA cache if needed.
+            torch.cuda.empty_cache() 
+                
             # Save the model every 'save_frequency' batches.
             if batch_ticker % train_config.save_frequency == 0:
                 if ppo_trainer.accelerator.is_main_process:
