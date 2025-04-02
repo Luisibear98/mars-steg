@@ -110,7 +110,7 @@ def train(ppo_config, model_config, optimizer_config, train_config, generation_c
         print(f'BEGINING EPOCH {epoch}\n\n')
 
         batch_ticker = 0
-
+        computed_steps = 0 # To keep track of steps
         for batch_prompt_datas in tqdm(train_loader):
 
             batch_prompt_datas: BatchPromptData
@@ -255,9 +255,15 @@ def train(ppo_config, model_config, optimizer_config, train_config, generation_c
                 torch.cuda.empty_cache() 
 
             # Save the model every 'save_frequency' batches.
-            if batch_ticker % train_config.save_frequency == 0:
+            computed_steps += len(composite_reward_list)
+
+            if computed_steps % train_config.save_frequency == 0: 
                 if ppo_trainer.accelerator.is_main_process:
-                    ppo_trainer.save_pretrained(model_config.model_save_path)
+                    save_path = f"experiment_lora_cache"
+                    ppo_trainer.model.pretrained_model.save_pretrained(save_path)
+                    artifact = wandb.Artifact(name=f"model_at_step_{str(computed_steps)}", type="model")
+                    artifact.add_dir(save_path)  # Adds the entire folder
+                    wandb.log_artifact(artifact)
 
             batch_ticker += 1
 
