@@ -781,31 +781,28 @@ class PPOTrainer(BaseTrainer):
         model_inputs = self.prepare_model_inputs(queries, responses)
         
         if penalization_tensors is not None:
-   
+            #print("---- BEFORE PADDING ----")
+            #for i, tensor in enumerate(penalization_tensors):
+            #    print(f"Index {i}: Penalization tensor length = {len(tensor)}, Query length = {len(queries[i])}, Model input length = {len(model_inputs['input_ids'][i])}")
+
+            # Compute exact padding needed
             penalization_tensors = [
-                F.pad(penalization_tensor, (len(model_inputs["input_ids"][i]), 0), "constant", 0.0)
+                F.pad(penalization_tensor, 
+                    (len(model_inputs["input_ids"][i]) - len(penalization_tensor), 0),  # Adjust dynamically
+                    "constant", 0.0)
                 for i, penalization_tensor in enumerate(penalization_tensors)
             ]
 
-            lengths_penalization = [len(penalization_tensor) for penalization_tensor in penalization_tensors]
-            lengths_model_inputs = [len(model_inputs["input_ids"][i]) for i in range(len(model_inputs["input_ids"]))]
+            #print("---- AFTER PADDING ----")
+            #for i, tensor in enumerate(penalization_tensors):
+            #    print(f"Index {i}: Penalization tensor length = {len(tensor)}, Model input length = {len(model_inputs['input_ids'][i])}")
 
-            print("----MISMATCH----")
-            print(tokeniser.decode(model_inputs["input_ids"][0]))
-            print("................................")
-            print(tokeniser.decode(queries[0]))
-            print(len(penalization_tensors[0]))
-            print(len(model_inputs["input_ids"][0]))
-            print(len(queries[0]))
-            
-
-            assert lengths_penalization == lengths_model_inputs, "Mismatch in lengths!"
-
-            example_dict = [
-                (tokeniser.decode(model_inputs["input_ids"][0][i]), penalization_tensors[0][i].item())
-                for i in range(len(queries[0]), len(model_inputs["input_ids"][0]))
-            ]
-            print("Example dict:", example_dict)
+            # Assertion to confirm the fix
+            assert [len(penalization_tensor) for penalization_tensor in penalization_tensors] == \
+                [len(model_inputs["input_ids"][i]) for i in range(len(model_inputs["input_ids"]))], \
+                "Mismatch in lengths!"
+    
+    
         if self.is_distributed:
             pad_first = self.tokenizer.padding_side == "left"
             model_inputs["input_ids"] = self.accelerator.pad_across_processes(
