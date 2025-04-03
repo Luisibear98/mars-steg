@@ -869,6 +869,8 @@ class PPOTrainer(BaseTrainer):
             #ref_logprobs = ref_logprobs.to("cpu")
             #all_logprobs = all_logprobs.to("cpu")
 
+        raise Exception('non_score_reward not used here - i.e. we are not using temporally local reward at all!')
+
         values, advantages, returns = self.compute_advantages(values, rewards, masks)
 
         # Prepare a dictionary that bundles all data needed for mini-batch training.
@@ -1243,7 +1245,7 @@ class PPOTrainer(BaseTrainer):
             kl = self._kl_penalty(logprob, ref_logprob)
             kls.append(kl)
             penalization_tensor = F.pad(penalization_tensor, (0, len(kl) - len(penalization_tensor)), "constant", 0.0)
-            non_score_reward = -self.kl_ctl.value * kl - penalization_tensor.to(torch.bfloat16)
+            non_score_reward = - self.kl_ctl.value * kl - penalization_tensor.to(torch.bfloat16)
             non_score_rewards.append(non_score_reward)
             reward = non_score_reward.clone()
             last_non_masked_index = mask.nonzero()[-1]
@@ -1252,6 +1254,7 @@ class PPOTrainer(BaseTrainer):
             reward[last_non_masked_index] += score
             rewards.append(reward)
         return torch.stack(rewards), torch.stack(non_score_rewards), torch.stack(kls)
+
     def _kl_penalty(self, logprob: torch.FloatTensor, ref_logprob: torch.FloatTensor) -> torch.FloatTensor:
         if self.config.kl_penalty == "kl":
             return logprob - ref_logprob

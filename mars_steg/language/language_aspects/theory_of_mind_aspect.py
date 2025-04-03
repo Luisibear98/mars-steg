@@ -9,11 +9,15 @@ from transformers import AutoTokenizer
 
 class ToMTokenBanTask(LanguageAspect):
 
+    """
+    temporal_reward_penalisation_offset is used to offset the effect of kl regularisation on the length of CoT
+    """
+
     compatible_tasks = {"TheoryOfMindTask"}
 
     uses_local_neural_overseer = False
 
-    def __init__(self, nouns_path: str, nouns_penalisation_type: str, max_freq=50, **kwargs):
+    def __init__(self, nouns_path: str, nouns_penalisation_type: str, max_freq=50, temporal_reward_penalisation_offset: Optional[float] = None, **kwargs):
         super().__init__()
         self.nouns_path = nouns_path
         self.nouns_penalisation_type = nouns_penalisation_type
@@ -21,6 +25,10 @@ class ToMTokenBanTask(LanguageAspect):
             nouns = yaml.safe_load(f)
         self.penalise_substrings = set(nouns[nouns_penalisation_type])
         self.max_freq = max_freq
+        if temporal_reward_penalisation_offset is not None:
+            self.temporal_reward_penalisation_offset = torch.tensor(temporal_reward_penalisation_offset).to(torch.bfloat16)
+        else:
+            self.temporal_reward_penalisation_offset = None
 
     def limit_penalise_substrings(self, new_penalise_substrings: List[str]):
         new_instance = ToMTokenBanTask(
@@ -81,10 +89,13 @@ class ToMTokenBanTask(LanguageAspect):
         # Count equals signs in cot
         
         cot = prompt_data.extracted_cot
-        tokenized = tokenizer(cot)
-        tokenized_cot = tokenized['input_ids']
+        
+        if tokenizer is not None:
+            
+            assert self.temporal_reward_penalisation_offset is not None
 
-        if tokenized_cot is not None and tokenizer is not None:
+            tokenized = tokenizer(cot)
+            tokenized_cot = tokenized['input_ids']
             matches_token = [re.findall(keyword, cot) for keyword in self.penalise_substrings]
             list_word_penalise = []
             for words_to_penalise in matches_token:
@@ -96,9 +107,9 @@ class ToMTokenBanTask(LanguageAspect):
             token_to_penalise = [torch.tensor([token for token in list_token if token not in special_tokens]).to("cuda") for list_token in token_to_penalise]
 
             penalisation_tensor = self.create_penalisation_tensor(
-                token_ids=tokenized_cot , 
+                token_ids=tokenized_cot, 
                 lists_of_tokens_to_penalize=token_to_penalise
-                )
+            ).to(torch.bfloat16) - self.temporal_reward_penalisation_offset # Offset removed = small reward for each token
         
         n_string_matches = 0
         for penalise_substring in self.penalise_substrings:
@@ -107,7 +118,10 @@ class ToMTokenBanTask(LanguageAspect):
         n_string_matches = min(n_string_matches, self.max_freq)
         language_penality = float(n_string_matches / self.max_freq)
 
-        return  1 - language_penality, penalisation_tensor
+        if tokenizer is not None:
+            return 1 - language_penality, penalisation_tensor
+        else:
+            return 1 - language_penality
 
 
     

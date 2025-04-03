@@ -413,9 +413,8 @@ class Task(metaclass=ABCMeta):
             skipping_failed_parsing_examples=skipping_failed_parsing_examples
             )
         task_score = check_score('task_score:', task_score)
-        temp = True
         
-        if tokenizer:
+        if tokenizer is not None:
             language_score, penalisation_tensor = self.language_aspect.get_language_score_temporal_reward(prompt_data, tokenizer)
         else:
             penalisation_tensor = None

@@ -544,7 +544,7 @@ def get_rewards_and_training_datas(
                 task_score = 0.0
                 language_score = 0.0
                 if tokenizer:
-                    penalisation_tensor = torch.zeros_like(query_tensors[i], dtype=torch.bool)
+                    penalisation_tensor = torch.zeros_like(query_tensors[i], dtype=torch.bool).to(torch.bfloat16)
 
 
         # Original model extraction succeeded!
