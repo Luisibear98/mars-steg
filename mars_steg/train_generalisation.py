@@ -212,7 +212,7 @@ def train(ppo_config, model_config, optimizer_config, train_config, generation_c
             print(f"Rewarding example with {composite_reward_list}")
             print(f"Task score: {task_score_list}")
             print(f"Language score: {language_score_list}")
-            # print(f"Local reward list: {penalisation_tensor_list}")
+            print(f"Local reward list: {penalisation_tensor_list}")
             print("--------")
             # Set this flag to False to skip optimization
             run_optimization = train_config.run_optimization

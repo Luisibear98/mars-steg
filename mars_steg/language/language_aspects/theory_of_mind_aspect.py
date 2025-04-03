@@ -81,7 +81,6 @@ class ToMTokenBanTask(LanguageAspect):
         # Count equals signs in cot
         
         cot = prompt_data.extracted_cot
-        print(cot)
         tokenized = tokenizer(cot)
         tokenized_cot = tokenized['input_ids']
 

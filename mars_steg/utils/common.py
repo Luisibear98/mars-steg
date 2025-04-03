@@ -543,6 +543,9 @@ def get_rewards_and_training_datas(
                 composite_reward = -1.0
                 task_score = 0.0
                 language_score = 0.0
+                if tokenizer:
+                    penalisation_tensor = torch.zeros_like(query_tensors[i], dtype=torch.bool)
+
 
         # Original model extraction succeeded!
         else:
