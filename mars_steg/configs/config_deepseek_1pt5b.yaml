@@ -19,7 +19,7 @@ Optimizer:
 Train:
   log_with: 'wandb'  # Use 'wandb' to log with wandb
   mini_batch_size: 2  # The PPO minibatch size
-  batch_size: 4 # The batch size
+  batch_size: 16 # The batch size
   gradient_accumulation_steps: 2  # The number of gradient accumulation steps
   seed: 42  # The seed for reproducibility
   num_train_epochs: 10  # The number of training epochs
@@ -41,6 +41,8 @@ Train:
   init_kl_coef: 0.05 #float value to initiate the kl coef (constant for adap_kl_ctrl: False or init value for adaptative KL otherwise)
   adap_kl_ctrl: False # wheter to use a constant or adaptative KL control
   lora_unload_measurement : False # wheter to use the lora unloading measurement
+  use_temporal_penalization: True #Wheter to use local penalization on unwanted tokens
+
 
 Generation:
   min_length: 0

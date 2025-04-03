@@ -399,9 +399,11 @@ class TrainConfig:
     init_kl_coef: float 
         float value to initiate the kl coef (constant for adap_kl_ctrl: False or init value for adaptative KL otherwise)
     adap_kl_ctrl: bool 
-        wheter to use a constant or adaptative KL control
+        whether to use a constant or adaptative KL control
     lora_unload_measurement : bool 
-        wheter to use the lora unloading measurement
+        whether to use the lora unloading measurement
+    use_temporal_penalization : bool 
+        whether to use the temporal reward 
 
 
     Notes
@@ -436,6 +438,9 @@ class TrainConfig:
     init_kl_coef: float 
     adap_kl_ctrl: bool 
     lora_unload_measurement : bool 
+    use_temporal_penalization : bool 
+
+
     t_weight: float
     l_weight: float
 

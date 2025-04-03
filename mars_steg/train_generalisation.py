@@ -319,17 +319,29 @@ def train(ppo_config, model_config, optimizer_config, train_config, generation_c
                     continue
 
                 # Extract rewards
-                test_composite_reward_list, test_task_score_list, test_language_score_list, test_query_tensors, test_transcript_responses = \
-                get_rewards_and_training_datas(
-                    batch_prompt_datas=extracted_test_batch_prompt_datas,
-                    query_tensors=query_tensors,
-                    transcript_responses=transcript_responses, 
-                    train_dataset=train_dataset,
-                    skipping_failed_parsing_examples = train_config.skipping_failed_parsing_examples,
-                    t_weight=train_config.t_weight,
-                    l_weight=train_config.l_weight,
-                )
-
+                if train_config.use_local_penalization:
+                    test_composite_reward_list, test_task_score_list, test_language_score_list, test_query_tensors, test_transcript_responses = \
+                    get_rewards_and_training_datas(
+                        batch_prompt_datas=extracted_test_batch_prompt_datas,
+                        query_tensors=query_tensors,
+                        transcript_responses=transcript_responses, 
+                        train_dataset=train_dataset,
+                        skipping_failed_parsing_examples = train_config.skipping_failed_parsing_examples,
+                        t_weight=train_config.t_weight,
+                        l_weight=train_config.l_weight,
+                        tokenizer=tokenizer
+                    )
+                else:
+                    test_composite_reward_list, test_task_score_list, test_language_score_list, test_query_tensors, test_transcript_responses = \
+                    get_rewards_and_training_datas(
+                        batch_prompt_datas=extracted_test_batch_prompt_datas,
+                        query_tensors=query_tensors,
+                        transcript_responses=transcript_responses, 
+                        train_dataset=train_dataset,
+                        skipping_failed_parsing_examples = train_config.skipping_failed_parsing_examples,
+                        t_weight=train_config.t_weight,
+                        l_weight=train_config.l_weight
+                    )
                 wandb.log(
                     {   
                         'test_epoch': epoch,
