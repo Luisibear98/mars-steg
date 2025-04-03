@@ -202,7 +202,6 @@ def train(ppo_config, model_config, optimizer_config, train_config, generation_c
                 
 
             
-
             log_merged_batch_wandb([batch_prompt_datas], epoch = epoch, batch_in_epoch = batch_ticker)
 
             if len(composite_reward_list) == 0:
