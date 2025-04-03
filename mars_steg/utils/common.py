@@ -9,7 +9,8 @@ from torch.optim import AdamW
 import logging
 import traceback
 
-from typing import List, Tuple
+from typing import List, Tuple, Optional
+from transformers import AutoTokenizer
 
 from tqdm import tqdm
 from transformers import AutoTokenizer
@@ -479,6 +480,7 @@ def get_rewards_and_training_datas(
         skipping_failed_parsing_examples: Optional[bool] = True,
         t_weight: float = 1.0, 
         l_weight: float = 1.0,
+        tokenizer: Optional[AutoTokenizer] = None,
         ) -> Tuple[List]:
     
     """
@@ -524,7 +526,7 @@ def get_rewards_and_training_datas(
     """
 
     
-    composite_reward_list, task_score_list, language_score_list = [], [], []
+    composite_reward_list, task_score_list, language_score_list, penalisation_tensor_list = [], [], [], []
     train_query_tensors = []
     train_transcript_responses = []
 
@@ -545,19 +547,31 @@ def get_rewards_and_training_datas(
         # Original model extraction succeeded!
         else:
             try:
-                composite_reward, task_score, language_score = train_dataset.reward_from_transcript(
-                    prompt_data=prompt_data, 
-                    skipping_failed_parsing_examples=skipping_failed_parsing_examples, 
-                    t_weight=t_weight, 
-                    l_weight= l_weight,
-                )
+                if tokenizer:
+                    composite_reward, task_score, language_score, penalisation_tensor = train_dataset.reward_from_transcript(
+                        prompt_data=prompt_data, 
+                        skipping_failed_parsing_examples=skipping_failed_parsing_examples, 
+                        t_weight=t_weight, 
+                        l_weight= l_weight,
+                        tokenizer=tokenizer
+                    )
+                    
+                else:
 
+                    composite_reward, task_score, language_score, _ = train_dataset.reward_from_transcript(
+                        prompt_data=prompt_data, 
+                        skipping_failed_parsing_examples=skipping_failed_parsing_examples, 
+                        t_weight=t_weight, 
+                        l_weight= l_weight,
+                        
+                    )
             # Extraction failed at overseer/assessor stage - do not penalise model
             except LLMTranscriptExtractionError as e:
                 print(f"LLMTranscriptExtractionError occurred: {str(e)}")
                 traceback.print_exc()
                 continue
-
+        if tokenizer:
+            penalisation_tensor_list.append(penalisation_tensor)
         composite_reward_list.append(t.tensor(composite_reward))
         task_score_list.append(task_score)
         language_score_list.append(language_score)
@@ -567,7 +581,7 @@ def get_rewards_and_training_datas(
         prompt_data.language_score = language_score
         prompt_data.composite_reward = composite_reward
 
-    return composite_reward_list, task_score_list, language_score_list, train_query_tensors, train_transcript_responses
+    return composite_reward_list, task_score_list, language_score_list, train_query_tensors, train_transcript_responses, penalisation_tensor_list
 
 
 def evaluate_cot_gap_summary(

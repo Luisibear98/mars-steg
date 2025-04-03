@@ -121,9 +121,10 @@ def train(ppo_config, model_config, optimizer_config, train_config, generation_c
             )
             
             transformed_batch_conversation = [model.transform_conversation(conversation, prompt_config.prompt_thinking_helper) for conversation in batch_messages]
-        
-            inputs = model.tokenize(transformed_batch_conversation)
 
+            inputs = model.tokenize(transformed_batch_conversation)
+            lengths_model_inputs = [len(inputs["input_ids"][i]) for i in range(len(inputs["input_ids"]))]
+            
             # Move the tokenized inputs to the same device the model is on (GPU/CPU)
             inputs = {key: tensor.to(device_map["main_model"]) for key, tensor in inputs.items()}
 
@@ -173,16 +174,34 @@ def train(ppo_config, model_config, optimizer_config, train_config, generation_c
                 print("All examples parsed successfully")
 
             # Extract rewards
-            composite_reward_list, task_score_list, language_score_list, train_query_tensors, train_transcript_responses = \
-            get_rewards_and_training_datas(
-                batch_prompt_datas=extracted_batch_prompt_datas,
-                query_tensors=query_tensors,
-                transcript_responses=transcript_responses, 
-                train_dataset=train_dataset,
-                skipping_failed_parsing_examples = train_config.skipping_failed_parsing_examples,
-                t_weight=train_config.t_weight,
-                l_weight=train_config.l_weight,
-            )
+            use_local_penalization = True
+           
+            if use_local_penalization:
+                composite_reward_list, task_score_list, language_score_list, train_query_tensors, train_transcript_responses, penalisation_tensor_list = \
+                get_rewards_and_training_datas(
+                    batch_prompt_datas=extracted_batch_prompt_datas,
+                    query_tensors=query_tensors,
+                    transcript_responses=transcript_responses, 
+                    train_dataset=train_dataset,
+                    skipping_failed_parsing_examples = train_config.skipping_failed_parsing_examples,
+                    t_weight=train_config.t_weight,
+                    l_weight=train_config.l_weight,
+                    tokenizer=tokenizer
+                )
+            else:
+                composite_reward_list, task_score_list, language_score_list, train_query_tensors, train_transcript_responses, _ = \
+                get_rewards_and_training_datas(
+                    batch_prompt_datas=extracted_batch_prompt_datas,
+                    query_tensors=query_tensors,
+                    transcript_responses=transcript_responses, 
+                    train_dataset=train_dataset,
+                    skipping_failed_parsing_examples = train_config.skipping_failed_parsing_examples,
+                    t_weight=train_config.t_weight,
+                    l_weight=train_config.l_weight,
+                )
+                
+
+            
 
             log_merged_batch_wandb([batch_prompt_datas], epoch = epoch, batch_in_epoch = batch_ticker)
 
@@ -194,8 +213,8 @@ def train(ppo_config, model_config, optimizer_config, train_config, generation_c
             print(f"Rewarding example with {composite_reward_list}")
             print(f"Task score: {task_score_list}")
             print(f"Language score: {language_score_list}")
+            # print(f"Local reward list: {penalisation_tensor_list}")
             print("--------")
-            
             # Set this flag to False to skip optimization
             run_optimization = train_config.run_optimization
 
@@ -211,7 +230,7 @@ def train(ppo_config, model_config, optimizer_config, train_config, generation_c
                     ppo_trainer.config.backward_batch_size = len(composite_reward_list)
 
                 stats = ppo_trainer.step(
-                    train_query_tensors, train_transcript_responses, composite_reward_list,
+                    train_query_tensors, train_transcript_responses, composite_reward_list, penalization_tensors=penalisation_tensor_list, tokeniser=tokenizer
                 )
             else:
                 # When skipping optimization, we can set stats to an empty dict or

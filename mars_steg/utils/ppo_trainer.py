@@ -680,6 +680,7 @@ class PPOTrainer(BaseTrainer):
         responses: List[torch.LongTensor],
         scores: List[torch.FloatTensor],
         masks: Optional[List[torch.LongTensor]] = None,
+        penalization_tensors: Optional[List[torch.FloatTensor]] = None
     ):
         """
         Check if the input data is valid for training.
@@ -699,7 +700,7 @@ class PPOTrainer(BaseTrainer):
         Returns:
             `tuple`: The input processed data.
         """
-        for name, tensor_list in zip(["queries", "responses", "scores"], [queries, responses, scores]):
+        for name, tensor_list in zip(["queries", "responses", "scores", "penalization_tensors"], [queries, responses, scores, penalization_tensors]):
             if not isinstance(tensor_list, list):
                 raise ValueError(f"{name} must be a list of tensors - got {type(tensor_list)}")
             if not isinstance(tensor_list[0], torch.Tensor):
@@ -714,6 +715,7 @@ class PPOTrainer(BaseTrainer):
         responses = [tensor.to(self.current_device) for tensor in responses]
         scores = [tensor.to(self.current_device) for tensor in scores]
         masks = [tensor.to(self.current_device) for tensor in masks] if masks is not None else None
+        penalization_tensors = [tensor.to(self.current_device) for tensor in penalization_tensors] if penalization_tensors is not None else None
 
         # squeeze scores if needed
         for i, score in enumerate(scores):
@@ -722,7 +724,7 @@ class PPOTrainer(BaseTrainer):
             elif score.dim() == 1:
                 scores[i] = score.squeeze()
 
-        return queries, responses, scores, masks
+        return queries, responses, scores, masks, penalization_tensors
 
     import gc
     import numpy as np
@@ -736,6 +738,10 @@ class PPOTrainer(BaseTrainer):
         responses: list[torch.LongTensor],
         scores: list[torch.FloatTensor],
         response_masks: list[torch.LongTensor] = None,
+        penalization_tensors: Optional[List[torch.FloatTensor]] = None,
+        tokeniser: Optional[PreTrainedTokenizer] = None
+
+
     ):
 
         """
@@ -744,8 +750,8 @@ class PPOTrainer(BaseTrainer):
         """
         bs = self.config.batch_size
         # Safety-check and move inputs to device.
-        queries, responses, scores, response_masks = self._step_safety_checker(
-            bs, queries, responses, scores, response_masks
+        queries, responses, scores, response_masks, penalization_tensors = self._step_safety_checker(
+            bs, queries, responses, scores, response_masks, penalization_tensors
         )
         scores = torch.tensor(scores, device=self.current_device)
 
@@ -770,7 +776,36 @@ class PPOTrainer(BaseTrainer):
             self.compare_step += 1
 
         # Prepare model inputs (e.g. concatenated queries and responses, attention masks, etc.).
+
+
         model_inputs = self.prepare_model_inputs(queries, responses)
+        
+        if penalization_tensors is not None:
+   
+            penalization_tensors = [
+                F.pad(penalization_tensor, (len(model_inputs["input_ids"][i]), 0), "constant", 0.0)
+                for i, penalization_tensor in enumerate(penalization_tensors)
+            ]
+
+            lengths_penalization = [len(penalization_tensor) for penalization_tensor in penalization_tensors]
+            lengths_model_inputs = [len(model_inputs["input_ids"][i]) for i in range(len(model_inputs["input_ids"]))]
+
+            print("----MISMATCH----")
+            print(tokeniser.decode(model_inputs["input_ids"][0]))
+            print("................................")
+            print(tokeniser.decode(queries[0]))
+            print(len(penalization_tensors[0]))
+            print(len(model_inputs["input_ids"][0]))
+            print(len(queries[0]))
+            
+
+            assert lengths_penalization == lengths_model_inputs, "Mismatch in lengths!"
+
+            example_dict = [
+                (tokeniser.decode(model_inputs["input_ids"][0][i]), penalization_tensors[0][i].item())
+                for i in range(len(queries[0]), len(model_inputs["input_ids"][0]))
+            ]
+            print("Example dict:", example_dict)
         if self.is_distributed:
             pad_first = self.tokenizer.padding_side == "left"
             model_inputs["input_ids"] = self.accelerator.pad_across_processes(
@@ -828,11 +863,11 @@ class PPOTrainer(BaseTrainer):
             active_full_logprobs = selective_log_softmax(logits_or_none, None, gather=False)
             ref_full_logprobs = selective_log_softmax(ref_logits_or_none, None, gather=False)
             rewards, non_score_reward, kls = self.compute_rewards(
-                scores, active_full_logprobs, ref_full_logprobs, masks
+                    scores, active_full_logprobs, ref_full_logprobs, masks, penalization_tensors=penalization_tensors
             )
         else:
             rewards, non_score_reward, kls = self.compute_rewards(
-                scores, all_logprobs, ref_logprobs, masks
+                    scores, all_logprobs, ref_logprobs, masks, penalization_tensors=penalization_tensors
             )
             #ref_logprobs = ref_logprobs.to("cpu")
             #all_logprobs = all_logprobs.to("cpu")
@@ -1185,6 +1220,8 @@ class PPOTrainer(BaseTrainer):
         logprobs: torch.FloatTensor,
         ref_logprobs: torch.FloatTensor,
         masks: torch.LongTensor,
+        penalization_tensors: Optional[torch.FloatTensor] = None
+
     ):
         """
         Compute per token rewards from scores and KL-penalty.
@@ -1204,11 +1241,12 @@ class PPOTrainer(BaseTrainer):
         """
         rewards, non_score_rewards, kls = [], [], []
 
-        for score, logprob, ref_logprob, mask in zip(scores, logprobs, ref_logprobs, masks):
+        for score, logprob, ref_logprob, mask, penalization_tensor in zip(scores, logprobs, ref_logprobs, masks, penalization_tensors):
             # compute KL penalty (from difference in logprobs)
             kl = self._kl_penalty(logprob, ref_logprob)
             kls.append(kl)
-            non_score_reward = -self.kl_ctl.value * kl
+            penalization_tensor = F.pad(penalization_tensor, (0, len(kl) - len(penalization_tensor)), "constant", 0.0)
+            non_score_reward = -self.kl_ctl.value * kl - penalization_tensor.to(torch.bfloat16)
             non_score_rewards.append(non_score_reward)
             reward = non_score_reward.clone()
             last_non_masked_index = mask.nonzero()[-1]
@@ -1217,7 +1255,6 @@ class PPOTrainer(BaseTrainer):
             reward[last_non_masked_index] += score
             rewards.append(reward)
         return torch.stack(rewards), torch.stack(non_score_rewards), torch.stack(kls)
-
     def _kl_penalty(self, logprob: torch.FloatTensor, ref_logprob: torch.FloatTensor) -> torch.FloatTensor:
         if self.config.kl_penalty == "kl":
             return logprob - ref_logprob

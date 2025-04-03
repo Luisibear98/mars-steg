@@ -1,8 +1,9 @@
-from typing import List
+from typing import List, Optional
 import yaml
-
+import re
+import torch
 from mars_steg.language.base_language_aspect import LanguageAspect
-
+from transformers import AutoTokenizer
 
 
 
@@ -34,6 +35,31 @@ class ToMTokenBanTask(LanguageAspect):
 
         return new_instance
 
+    def create_penalisation_tensor(self, token_ids:torch.Tensor, lists_of_tokens_to_penalize: List[torch.Tensor])-> torch.Tensor:
+
+        token_ids = torch.tensor(token_ids).to("cpu")
+        penalisation_tensor = torch.zeros_like(token_ids, dtype=torch.bool)
+        lists_of_tokens_to_penalize = [t.to("cpu") for t in lists_of_tokens_to_penalize]
+        for list_of_tokens_to_penalize in lists_of_tokens_to_penalize:
+            # Get sequence length
+            seq_len = list_of_tokens_to_penalize.shape[0]
+
+            # Use unfold to create a rolling window view (efficiently without extra memory copies)
+            windows = token_ids.unfold(0, seq_len, 1)  # Shape: [num_windows, seq_len]
+
+            # Compare each window with the target sequence
+            matches = (windows == list_of_tokens_to_penalize).all(dim=1)
+            start_indices = matches.nonzero(as_tuple=True)[0]
+
+            # Create a mask for penalization
+            penalized_one_sequence_token_tensor = torch.zeros_like(token_ids, dtype=torch.bool)
+
+            # Penalize entire matched windows
+            for idx in start_indices:
+                penalized_one_sequence_token_tensor[idx: idx + seq_len] = True  # Set mask for all elements in the window
+            penalisation_tensor+=penalized_one_sequence_token_tensor
+        return penalisation_tensor
+
     def get_language_score(self, prompt_data):
 
         # Count equals signs in cot
@@ -50,3 +76,39 @@ class ToMTokenBanTask(LanguageAspect):
         language_penality = float(n_string_matches / self.max_freq)
         return  1 - language_penality
 
+    def get_language_score_temporal_reward(self, prompt_data, tokenizer: Optional[AutoTokenizer] = None):
+
+        # Count equals signs in cot
+        
+        cot = prompt_data.extracted_cot
+        print(cot)
+        tokenized = tokenizer(cot)
+        tokenized_cot = tokenized['input_ids']
+
+        if tokenized_cot is not None and tokenizer is not None:
+            matches_token = [re.findall(keyword, cot) for keyword in self.penalise_substrings]
+            list_word_penalise = []
+            for words_to_penalise in matches_token:
+                list_word_penalise+=words_to_penalise
+            list_word_penalise = list(set(list_word_penalise))
+
+            special_tokens = list(tokenizer.all_special_ids)
+            token_to_penalise = [tokenizer(word)['input_ids'] for word in list_word_penalise]
+            token_to_penalise = [torch.tensor([token for token in list_token if token not in special_tokens]).to("cuda") for list_token in token_to_penalise]
+
+            penalisation_tensor = self.create_penalisation_tensor(
+                token_ids=tokenized_cot , 
+                lists_of_tokens_to_penalize=token_to_penalise
+                )
+        
+        n_string_matches = 0
+        for penalise_substring in self.penalise_substrings:
+            n_string_matches += cot.count(penalise_substring)
+
+        n_string_matches = min(n_string_matches, self.max_freq)
+        language_penality = float(n_string_matches / self.max_freq)
+
+        return  1 - language_penality, penalisation_tensor
+
+
+    
