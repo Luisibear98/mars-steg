@@ -301,9 +301,7 @@ def train(ppo_config, model_config, optimizer_config, train_config, generation_c
                     system_prompt= test_dataset.system_prompt,
                 )
 
-                model.full_generate(test_batch_messages)
-
-                test_batch_prompt_datas.cot_transcripts = decoded_responses
+                test_batch_prompt_datas.cot_transcripts = model.full_generate(test_batch_messages)
 
                 # Extract answer and CoT before given to neural overseer and assessor
                 # If this fails - we might want to still penalise the batch
