@@ -800,6 +800,9 @@ class PPOTrainer(BaseTrainer):
                 )
                 for i, penalization_tensor in enumerate(penalization_tensors)
             ]
+            example_dict = [(tokeniser.decode(model_inputs["input_ids"][1][i]), penalization_tensors[1][i].item()) for i in range(len(queries[1]),len(model_inputs["input_ids"][1]))]
+            print(example_dict)
+            
 
             #print("---- AFTER PADDING ----")
             #for i, tensor in enumerate(penalization_tensors):

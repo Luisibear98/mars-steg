@@ -93,8 +93,7 @@ class ToMTokenBanTask(LanguageAspect):
         if tokenizer is not None:
             
             assert self.temporal_reward_penalisation_offset is not None
-            print("-----")
-            print(cot)
+
             tokenized = tokenizer(cot)
             tokenized_cot = tokenized['input_ids']
             matches_token = [re.findall(keyword, cot) for keyword in self.penalise_substrings]
