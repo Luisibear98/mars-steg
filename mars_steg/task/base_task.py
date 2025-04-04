@@ -372,7 +372,8 @@ class Task(metaclass=ABCMeta):
         prompt_data: PromptData, 
         t_weight: float = 1.0, 
         l_weight: float = 1.0,
-        skipping_failed_parsing_examples: Optional[bool] = False
+        skipping_failed_parsing_examples: Optional[bool] = False,
+        tokenizer: Optional[AutoTokenizer] = None
     ) -> Tuple[float, float, float]:
         """
         Computes the language score, the task score and calculates the final reward from a task transcript, i.e. the LLM answer for the considered task.
@@ -412,13 +413,18 @@ class Task(metaclass=ABCMeta):
             skipping_failed_parsing_examples=skipping_failed_parsing_examples
             )
         task_score = check_score('task_score:', task_score)
-
-        language_score = self.language_aspect.get_language_score(prompt_data)
+        
+        if tokenizer is not None:
+            language_score, penalisation_tensor = self.language_aspect.get_language_score_temporal_reward(prompt_data, tokenizer)
+        else:
+            penalisation_tensor = None
+            language_score = self.language_aspect.get_language_score(prompt_data)
+        
         language_score = check_score('language_score:', language_score)
 
         r = self.reward(task_score, language_score, t_weight, l_weight)
 
-        return r, task_score, language_score
+        return r, task_score, language_score, penalisation_tensor
 
     def recruit_neural_assessor(self, model: BaseModel):
         """
