@@ -164,7 +164,7 @@ def parse_model_output(model_output: str, output_delimitation_tokens: Dict[str, 
             output = extract_section(output_start,start_output_token,output_end,model_output)
         
         if cot:
-            chain_of_thought = extract_section(0,start_output_token, output_start,model_output)
+            chain_of_thought = extract_section(0,"", output_start,model_output)
         else:
             chain_of_thought = None
 

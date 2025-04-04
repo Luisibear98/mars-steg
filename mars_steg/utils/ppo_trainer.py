@@ -784,11 +784,20 @@ class PPOTrainer(BaseTrainer):
             #    print(f"Index {i}: Penalization tensor length = {len(tensor)}, Query length = {len(queries[i])}, Model input length = {len(model_inputs['input_ids'][i])}")
 
             # Compute exact padding needed
-            assert (self.tokenizer.padding_side == "left"), "Need to reimplement if self.tokenizer.padding_side != left"
+            #assert (self.tokenizer.padding_side == "left"), "Need to reimplement if self.tokenizer.padding_side != left"
             penalization_tensors = [
                 F.pad(penalization_tensor, 
-                    (len(model_inputs["input_ids"][i]) - len(penalization_tensor), 0),  # Adjust dynamically - padding left only
+                    (len(queries[i])-1, 0),  # Adjust dynamically - padding left only
                     "constant", 0.0)
+                for i, penalization_tensor in enumerate(penalization_tensors)
+            ]
+            penalization_tensors = [
+                F.pad(
+                    penalization_tensor,
+                    (0, len(model_inputs["input_ids"][i]) - len(penalization_tensors[i])),  # Padding a la derecha
+                    "constant",
+                    0.0
+                )
                 for i, penalization_tensor in enumerate(penalization_tensors)
             ]
 

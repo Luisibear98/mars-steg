@@ -93,7 +93,8 @@ class ToMTokenBanTask(LanguageAspect):
         if tokenizer is not None:
             
             assert self.temporal_reward_penalisation_offset is not None
-
+            print("-----")
+            print(cot)
             tokenized = tokenizer(cot)
             tokenized_cot = tokenized['input_ids']
             matches_token = [re.findall(keyword, cot) for keyword in self.penalise_substrings]
@@ -103,7 +104,7 @@ class ToMTokenBanTask(LanguageAspect):
             list_word_penalise = list(set(list_word_penalise))
 
             special_tokens = list(tokenizer.all_special_ids)
-            token_to_penalise = [tokenizer(word)['input_ids'] for word in list_word_penalise]
+            token_to_penalise = [tokenizer(" "+ word)['input_ids'] for word in list_word_penalise]
             token_to_penalise = [torch.tensor([token for token in list_token if token not in special_tokens]).to("cuda") for list_token in token_to_penalise]
 
             penalisation_tensor = self.create_penalisation_tensor(
