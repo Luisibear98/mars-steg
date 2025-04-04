@@ -869,8 +869,6 @@ class PPOTrainer(BaseTrainer):
             #ref_logprobs = ref_logprobs.to("cpu")
             #all_logprobs = all_logprobs.to("cpu")
 
-        raise Exception('non_score_reward not used here - i.e. we are not using temporally local reward at all!')
-
         values, advantages, returns = self.compute_advantages(values, rewards, masks)
 
         # Prepare a dictionary that bundles all data needed for mini-batch training.
