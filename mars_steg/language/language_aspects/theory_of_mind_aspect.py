@@ -89,7 +89,7 @@ class ToMTokenBanTask(LanguageAspect):
         # Count equals signs in cot
         
         cot = prompt_data.extracted_cot
-        
+
         if tokenizer is not None:
             
             assert self.temporal_reward_penalisation_offset is not None
