@@ -739,9 +739,7 @@ class PPOTrainer(BaseTrainer):
         scores: list[torch.FloatTensor],
         response_masks: list[torch.LongTensor] = None,
         penalization_tensors: Optional[List[torch.FloatTensor]] = None,
-        tokeniser: Optional[PreTrainedTokenizer] = None
-
-
+        tokeniser: Optional[PreTrainedTokenizer] = None,
     ):
 
         """
@@ -786,9 +784,10 @@ class PPOTrainer(BaseTrainer):
             #    print(f"Index {i}: Penalization tensor length = {len(tensor)}, Query length = {len(queries[i])}, Model input length = {len(model_inputs['input_ids'][i])}")
 
             # Compute exact padding needed
+            assert (self.tokenizer.padding_side == "left"), "Need to reimplement if self.tokenizer.padding_side != left"
             penalization_tensors = [
                 F.pad(penalization_tensor, 
-                    (len(model_inputs["input_ids"][i]) - len(penalization_tensor), 0),  # Adjust dynamically
+                    (len(model_inputs["input_ids"][i]) - len(penalization_tensor), 0),  # Adjust dynamically - padding left only
                     "constant", 0.0)
                 for i, penalization_tensor in enumerate(penalization_tensors)
             ]
@@ -804,7 +803,7 @@ class PPOTrainer(BaseTrainer):
     
     
         if self.is_distributed:
-            pad_first = self.tokenizer.padding_side == "left"
+            pad_first = (self.tokenizer.padding_side == "left")
             model_inputs["input_ids"] = self.accelerator.pad_across_processes(
                 model_inputs["input_ids"],
                 dim=1,
