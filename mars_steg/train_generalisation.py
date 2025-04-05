@@ -355,7 +355,7 @@ def train(ppo_config, model_config, optimizer_config, train_config, generation_c
                         'test_mean_cot_token_length': test_batch_prompt_datas.mean_length_cot(),
                         'test_task_score': sum(test_task_score_list) / len(test_composite_reward_list),
                         'test_language_score': sum(test_language_score_list) / len(test_language_score_list),
-                        'test_reward' : sum(test_composite_reward_list) / len(test_composite_reward_list)
+                        'test_reward' : sum(test_composite_reward_list) / len(test_composite_reward_list),
                         'non_failed_test_task_score': sum(test_task_score_list_no_failed) / len(test_task_score_list_no_failed),
                         'non_failed_test_language_score': sum(test_language_score_list_no_failed) / len(test_language_score_list_no_failed),
                         'non_failed_test_reward' : sum(test_composite_reward_list_no_failed) / len(test_composite_reward_list_no_failed)
