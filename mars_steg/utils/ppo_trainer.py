@@ -777,7 +777,7 @@ class PPOTrainer(BaseTrainer):
 
 
         model_inputs = self.prepare_model_inputs(queries, responses)
-        
+
         if penalization_tensors is not None:
             #print("---- BEFORE PADDING ----")
             #for i, tensor in enumerate(penalization_tensors):
@@ -801,6 +801,9 @@ class PPOTrainer(BaseTrainer):
                 )
                 for i, penalization_tensor_pad in enumerate(penalization_tensors_padded)
             ]
+            example_dict = [(tokeniser.decode(model_inputs["input_ids"][1][i]), penalization_tensors[1][i].item()) for i in range(len(queries[1]),len(model_inputs["input_ids"][1]))]
+            print(example_dict)
+            import pdb; pdb.set_trace()
 
 
             

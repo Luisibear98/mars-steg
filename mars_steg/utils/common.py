@@ -527,6 +527,7 @@ def get_rewards_and_training_datas(
 
     
     composite_reward_list, task_score_list, language_score_list, penalisation_tensor_list = [], [], [], []
+    language_score_list_no_failed, task_score_list_no_failed, composite_reward_list_no_failed = [], [], []
     train_query_tensors = []
     train_transcript_responses = []
 
@@ -575,16 +576,26 @@ def get_rewards_and_training_datas(
                 continue
         if tokenizer:
             penalisation_tensor_list.append(penalisation_tensor)
+        
         composite_reward_list.append(t.tensor(composite_reward))
         task_score_list.append(task_score)
         language_score_list.append(language_score)
         train_query_tensors.append(query_tensors[i])
         train_transcript_responses.append(transcript_responses[i])
+        if not None in [
+            prompt_data.extracted_cot,
+            prompt_data.extracted_final_answer_with_cot
+        ]:
+            language_score_list_no_failed.append(language_score)
+            task_score_list_no_failed.append(task_score)
+            composite_reward_list_no_failed.append(composite_reward)
+
+
         prompt_data.task_score = task_score
         prompt_data.language_score = language_score
         prompt_data.composite_reward = composite_reward
 
-    return composite_reward_list, task_score_list, language_score_list, train_query_tensors, train_transcript_responses, penalisation_tensor_list
+    return composite_reward_list, task_score_list, language_score_list, train_query_tensors, train_transcript_responses, penalisation_tensor_list, task_score_list_no_failed, language_score_list_no_failed, composite_reward_list_no_failed
 
 
 def evaluate_cot_gap_summary(
