@@ -407,7 +407,7 @@ class Task(metaclass=ABCMeta):
         - Calls `get_language_score()` from `LanguageAspect` to assess language usage.
         - Uses `check_score()` to validate scores before computing reward.
         """
-
+       
         task_score = self.get_task_score(
             prompt_data, with_cot=True, 
             skipping_failed_parsing_examples=skipping_failed_parsing_examples
@@ -416,17 +416,15 @@ class Task(metaclass=ABCMeta):
         
         if tokenizer is not None:
             language_score, penalisation_tensor = self.language_aspect.get_language_score_temporal_reward(prompt_data, tokenizer)
-            r = task_score * t_weight
-            penalisation_tensor = penalisation_tensor * l_weight
         else:
             penalisation_tensor = None
             language_score = self.language_aspect.get_language_score(prompt_data)
-            r = self.reward(task_score, language_score, t_weight, l_weight)
         
         language_score = check_score('language_score:', language_score)
 
-        return r, task_score, language_score, penalisation_tensor
+        r = self.reward(task_score, language_score, t_weight, l_weight)
 
+        return r, task_score, language_score, penalisation_tensor
 
     def recruit_neural_assessor(self, model: BaseModel):
         """

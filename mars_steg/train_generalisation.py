@@ -111,6 +111,8 @@ def train(ppo_config, model_config, optimizer_config, train_config, generation_c
 
         batch_ticker = 0
         computed_steps = 0 # To keep track of steps
+        overall_extracted = 0
+        overall_failed = 0
         for batch_prompt_datas in tqdm(train_loader):
 
             batch_prompt_datas: BatchPromptData
@@ -177,7 +179,7 @@ def train(ppo_config, model_config, optimizer_config, train_config, generation_c
             use_local_penalization = True
            
             if use_local_penalization:
-                composite_reward_list, task_score_list, language_score_list, train_query_tensors, train_transcript_responses, penalisation_tensor_list = \
+                composite_reward_list, task_score_list, language_score_list, train_query_tensors, train_transcript_responses, penalisation_tensor_list, task_score_list_no_failed, language_score_list_no_failed, composite_reward_list_no_failed = \
                 get_rewards_and_training_datas(
                     batch_prompt_datas=extracted_batch_prompt_datas,
                     query_tensors=query_tensors,
@@ -189,7 +191,7 @@ def train(ppo_config, model_config, optimizer_config, train_config, generation_c
                     tokenizer=tokenizer
                 )
             else:
-                composite_reward_list, task_score_list, language_score_list, train_query_tensors, train_transcript_responses, _ = \
+                composite_reward_list, task_score_list, language_score_list, train_query_tensors, train_transcript_responses, _, task_score_list_no_failed, language_score_list_no_failed, composite_reward_list_no_failed = \
                 get_rewards_and_training_datas(
                     batch_prompt_datas=extracted_batch_prompt_datas,
                     query_tensors=query_tensors,
@@ -207,12 +209,18 @@ def train(ppo_config, model_config, optimizer_config, train_config, generation_c
             if len(composite_reward_list) == 0:
                 warnings.warn("All feedbacks (get_task_score and/or get_language_score) failed to parse. Skipping the optimisation for this batch of examples")
                 continue
-
+            
+            overall_extracted += len(composite_reward_list)
+            overall_failed += len(composite_reward_list) - len(task_score_list_no_failed)
+            overall_ratio_failed = overall_failed/ overall_extracted
             print("--------")
             print(f"Rewarding example with {composite_reward_list}")
             print(f"Task score: {task_score_list}")
             print(f"Language score: {language_score_list}")
-            #print(f"Local reward list: {penalisation_tensor_list}")
+            print(f"Rewarding no failes examples with {composite_reward_list_no_failed}")
+            print(f"No failed Task score: {task_score_list_no_failed}")
+            print(f"No failed Language score: {language_score_list_no_failed}")
+            print(f"Percent of failed: {overall_ratio_failed}%")
             print("--------")
             # Set this flag to False to skip optimization
             run_optimization = train_config.run_optimization
@@ -264,7 +272,11 @@ def train(ppo_config, model_config, optimizer_config, train_config, generation_c
                     'mean_cot_token_length': batch_prompt_datas.mean_length_cot(),
                     'task_score': sum(task_score_list) / len(composite_reward_list),
                     'language_score': sum(language_score_list) / len(language_score_list),
-                    'reward' : sum(composite_reward_list) / len(composite_reward_list)
+                    'no_failed_task_score': sum(task_score_list_no_failed) / len(composite_reward_list_no_failed),
+                    'no_failed_language_score': sum(language_score_list_no_failed) / len(language_score_list_no_failed),
+                    'no_failed_reward': sum(composite_reward_list_no_failed) / len(composite_reward_list_no_failed),
+                    'reward' : sum(composite_reward_list) / len(composite_reward_list),
+                    'overall_ratio_failed': overall_ratio_failed,
                 }
             )
 
@@ -289,7 +301,8 @@ def train(ppo_config, model_config, optimizer_config, train_config, generation_c
         print(f'BEGINING TESTING EPOCH {epoch}\n\n')
 
         test_batch_ticker = 0
-
+        test_overall_extracted = 0
+        test_overall_failed = 0
         with torch.no_grad():
             # START EVALUATION
             for test_batch_prompt_datas in tqdm(test_loader):
@@ -318,7 +331,8 @@ def train(ppo_config, model_config, optimizer_config, train_config, generation_c
 
                 # Extract rewards
                 if train_config.use_local_penalization:
-                    test_composite_reward_list, test_task_score_list, test_language_score_list, test_query_tensors, test_transcript_responses = \
+                    
+                    test_composite_reward_list, test_task_score_list, test_language_score_list, test_query_tensors, test_transcript_responses, _, test_task_score_list_no_failed, test_language_score_list_no_failed, test_composite_reward_list_no_failed = \
                     get_rewards_and_training_datas(
                         batch_prompt_datas=extracted_test_batch_prompt_datas,
                         query_tensors=query_tensors,
@@ -330,7 +344,7 @@ def train(ppo_config, model_config, optimizer_config, train_config, generation_c
                         tokenizer=tokenizer
                     )
                 else:
-                    test_composite_reward_list, test_task_score_list, test_language_score_list, test_query_tensors, test_transcript_responses = \
+                    test_composite_reward_list, test_task_score_list, test_language_score_list, test_query_tensors, test_transcript_responses,  _, test_task_score_list_no_failed, test_language_score_list_no_failed, test_composite_reward_list_no_failed = \
                     get_rewards_and_training_datas(
                         batch_prompt_datas=extracted_test_batch_prompt_datas,
                         query_tensors=query_tensors,
@@ -340,6 +354,10 @@ def train(ppo_config, model_config, optimizer_config, train_config, generation_c
                         t_weight=train_config.t_weight,
                         l_weight=train_config.l_weight
                     )
+                test_overall_extracted += len(test_composite_reward_list)
+                test_overall_failed += len(test_composite_reward_list) - len(test_task_score_list_no_failed)
+                test_overall_ratio_failed = test_overall_extracted/ test_overall_failed
+
                 wandb.log(
                     {   
                         'test_epoch': epoch,
@@ -347,7 +365,11 @@ def train(ppo_config, model_config, optimizer_config, train_config, generation_c
                         'test_mean_cot_token_length': test_batch_prompt_datas.mean_length_cot(),
                         'test_task_score': sum(test_task_score_list) / len(test_composite_reward_list),
                         'test_language_score': sum(test_language_score_list) / len(test_language_score_list),
-                        'test_reward' : sum(test_composite_reward_list) / len(test_composite_reward_list)
+                        'test_reward' : sum(test_composite_reward_list) / len(test_composite_reward_list),
+                        'non_failed_test_task_score': sum(test_task_score_list_no_failed) / len(test_task_score_list_no_failed),
+                        'non_failed_test_language_score': sum(test_language_score_list_no_failed) / len(test_language_score_list_no_failed),
+                        'non_failed_test_reward' : sum(test_composite_reward_list_no_failed) / len(test_composite_reward_list_no_failed),
+                        'test_overall_ratio_failed' : test_overall_ratio_failed
                     }
                 )
 
