@@ -404,6 +404,8 @@ class TrainConfig:
         whether to use the lora unloading measurement
     use_temporal_penalization : bool 
         whether to use the temporal reward 
+    test_only : bool 
+        whether you want to test only the model
 
 
     Notes
@@ -439,6 +441,10 @@ class TrainConfig:
     adap_kl_ctrl: bool 
     lora_unload_measurement : bool 
     use_temporal_penalization : bool 
+    test_only : bool 
+    load_lora_from_local: bool
+    load_lora_from_local_path: str #Path to the lora model to load
+
 
 
     t_weight: float

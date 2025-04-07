@@ -42,6 +42,9 @@ Train:
   adap_kl_ctrl: True # wheter to use a constant or adaptative KL control
   lora_unload_measurement : False # wheter to use the lora unloading measurement
   use_temporal_penalization: True #Wheter to use local penalization on unwanted tokens
+  test_only: True #Wheter to run the test only
+  load_lora_from_local: True
+  load_lora_from_local_path: "./trained_models/model_at_step_9000/" #Path to the lora model to load
 
 Generation:
   min_length: 0
