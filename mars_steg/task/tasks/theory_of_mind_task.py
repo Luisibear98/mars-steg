@@ -332,11 +332,12 @@ class TheoryOfMindTask(TorchDatasetTask):
             assert isinstance(self.language_aspect, ToMTokenBanTask)
 
             test_language_aspect = self.language_aspect.limit_penalise_substrings(test_names)
-            import pdb; pdb.set_trace()
+            train_language_aspect = self.language_aspect.limit_penalise_substrings(train_names)
+
             # Create the dataset objects
             train_dataset_obj = TheoryOfMindTask(
                 dataset = self.dataset_name,
-                language_aspect = self.language_aspect,     # Train on all names
+                language_aspect = train_language_aspect,     # Train on all names
                 uses_local_neural_assessor = False,
                 prompt_config = self.prompt_config,
                 batch_size = self.batch_size,

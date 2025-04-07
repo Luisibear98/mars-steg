@@ -272,7 +272,7 @@ class BatchPromptData:
         return df
 
 
-def log_merged_batch_wandb(list_of_batches: list[BatchPromptData], epoch: int, batch_in_epoch: int, ):
+def log_merged_batch_wandb(list_of_batches: list[BatchPromptData], epoch: int, batch_in_epoch: int, name = ""):
     dataframes = [batch.create_data_frame() for batch in list_of_batches]
     merged_df = dataframes[0]
     common_columns = list(dataframes[0].columns)
@@ -285,7 +285,7 @@ def log_merged_batch_wandb(list_of_batches: list[BatchPromptData], epoch: int, b
     merged_df['epoch'] = epoch
     merged_df['batch_in_epoch'] = batch_in_epoch
     
-    wandb.log({f"Merged_Batch_prompt_data_epoch_{epoch}_batch_{batch_in_epoch}":
+    wandb.log({f"Merged{name}_Batch_prompt_data_epoch_{epoch}_batch_{batch_in_epoch}":
                wandb.Table(columns=list(merged_df.columns), data=merged_df.values.tolist())})
 
 

@@ -131,6 +131,13 @@ def train(ppo_config, model_config, optimizer_config, train_config, generation_c
 
         print(f'BEGINING EPOCH {epoch}\n\n')
 
+        wandb.log(
+            {
+                'train_nouns': train_dataset.language_aspect.penalise_substrings,
+                'test_nouns': test_dataset.language_aspect.penalise_substrings,
+            }
+        )
+
         batch_ticker = 0
         computed_steps = 0 # To keep track of steps
         overall_extracted = 0
@@ -338,8 +345,6 @@ def train(ppo_config, model_config, optimizer_config, train_config, generation_c
                 )
 
                 
-           
-                
                 transformed_batch_conversation = [model.transform_conversation(conversation, prompt_config.prompt_thinking_helper) for conversation in test_batch_messages]
 
                 inputs = model.tokenize(transformed_batch_conversation)
@@ -408,6 +413,9 @@ def train(ppo_config, model_config, optimizer_config, train_config, generation_c
                         t_weight=train_config.t_weight,
                         l_weight=train_config.l_weight
                     )
+
+                log_merged_batch_wandb([test_batch_prompt_datas], epoch = epoch, batch_in_epoch = batch_ticker, name="_test")
+
                 test_overall_extracted += len(test_composite_reward_list)
                 test_overall_failed += len(test_composite_reward_list) - len(test_task_score_list_no_failed)
                 if test_overall_failed == 0:
