@@ -24,11 +24,14 @@ import numpy as np
 import wandb
 import sys
 
+import os
+
 import torch
 from tqdm import tqdm
 from transformers import set_seed
 
 import trl
+import random
 
 from mars_steg.utils.ppo_trainer import PPOConfig, PPOTrainer
 import sys
@@ -456,6 +459,18 @@ if __name__ == "__main__":
 
 
     device_map = get_device_map()
+
+
+    seed = 16
+    random.seed(seed)
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed_all(seed)
+    # Ensures deterministic behavior for cudnn
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = False
+
+    os.environ["PYTHONHASHSEED"] = str(seed)
+
 
     ####################################################################################################################
     # GET CONFIGS 

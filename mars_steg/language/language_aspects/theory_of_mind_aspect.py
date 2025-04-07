@@ -24,6 +24,7 @@ class ToMTokenBanTask(LanguageAspect):
         with open(nouns_path, 'r') as f:
             nouns = yaml.safe_load(f)
         self.penalise_substrings = set(nouns[nouns_penalisation_type])
+        print(f"penalise_substrings: {self.penalise_substrings}") 
         self.max_freq = max_freq
         if temporal_reward_penalisation_offset is not None:
             self.temporal_reward_penalisation_offset = torch.tensor(temporal_reward_penalisation_offset).to(torch.bfloat16)
