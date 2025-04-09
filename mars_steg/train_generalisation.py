@@ -155,7 +155,6 @@ def train(ppo_config, model_config, optimizer_config, train_config, generation_c
                 transformed_batch_conversation = [model.transform_conversation(conversation, prompt_config.prompt_thinking_helper) for conversation in batch_messages]
 
                 inputs = model.tokenize(transformed_batch_conversation)
-                lengths_model_inputs = [len(inputs["input_ids"][i]) for i in range(len(inputs["input_ids"]))]
                 
                 # Move the tokenized inputs to the same device the model is on (GPU/CPU)
                 inputs = {key: tensor.to(device_map["main_model"]) for key, tensor in inputs.items()}
@@ -348,7 +347,6 @@ def train(ppo_config, model_config, optimizer_config, train_config, generation_c
                 transformed_batch_conversation = [model.transform_conversation(conversation, prompt_config.prompt_thinking_helper) for conversation in test_batch_messages]
 
                 inputs = model.tokenize(transformed_batch_conversation)
-                lengths_model_inputs = [len(inputs["input_ids"][i]) for i in range(len(inputs["input_ids"]))]
                 
                 # Move the tokenized inputs to the same device the model is on (GPU/CPU)
                 inputs = {key: tensor.to(device_map["main_model"]) for key, tensor in inputs.items()}
@@ -360,13 +358,8 @@ def train(ppo_config, model_config, optimizer_config, train_config, generation_c
 
 
                 # Generate the with-CoT transcript (no-CoT transcript not needed during training)
-                transcript_responses = ppo_trainer.generate(
-                    query_tensors, **training_generation_kwargs,
-                )
-
-                decoded_responses = [
-                    tokenizer.decode(r.squeeze()) for r in transcript_responses
-                ]   
+                transcript_responses = ppo_trainer.generate(query_tensors, **training_generation_kwargs,)
+                decoded_responses = [tokenizer.decode(r.squeeze()) for r in transcript_responses]
                 
                 # extraction of answer and cot (because cot_mode = True) parts of the transcript
                 test_batch_prompt_datas.cot_transcripts = decoded_responses
@@ -414,7 +407,7 @@ def train(ppo_config, model_config, optimizer_config, train_config, generation_c
                         l_weight=train_config.l_weight
                     )
 
-                log_merged_batch_wandb([test_batch_prompt_datas], epoch = epoch, batch_in_epoch = batch_ticker, name="_test")
+                log_merged_batch_wandb([test_batch_prompt_datas], epoch = epoch, batch_in_epoch = test_batch_ticker, name="_test")
 
                 test_overall_extracted += len(test_composite_reward_list)
                 test_overall_failed += len(test_composite_reward_list) - len(test_task_score_list_no_failed)
@@ -468,15 +461,14 @@ if __name__ == "__main__":
     device_map = get_device_map()
 
 
-    seed = 16
-    random.seed(seed)
-    torch.manual_seed(seed)
-    torch.cuda.manual_seed_all(seed)
-    # Ensures deterministic behavior for cudnn
-    torch.backends.cudnn.deterministic = True
-    torch.backends.cudnn.benchmark = False
-
-    os.environ["PYTHONHASHSEED"] = str(seed)
+    # seed = 16
+    # random.seed(seed)
+    # torch.manual_seed(seed)
+    # torch.cuda.manual_seed_all(seed)
+    # # Ensures deterministic behavior for cudnn
+    # torch.backends.cudnn.deterministic = True
+    # torch.backends.cudnn.benchmark = False
+    # os.environ["PYTHONHASHSEED"] = str(seed)
 
 
     ####################################################################################################################
