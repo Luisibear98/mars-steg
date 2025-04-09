@@ -24,6 +24,7 @@ class ToMTokenBanTask(LanguageAspect):
         with open(nouns_path, 'r') as f:
             nouns = yaml.safe_load(f)
         self.penalise_substrings = set(nouns[nouns_penalisation_type])
+
         self.max_freq = max_freq
         if temporal_reward_penalisation_offset is not None:
             self.temporal_reward_penalisation_offset = torch.tensor(temporal_reward_penalisation_offset).to(torch.bfloat16)
@@ -34,7 +35,8 @@ class ToMTokenBanTask(LanguageAspect):
         new_instance = ToMTokenBanTask(
             nouns_path=self.nouns_path,
             nouns_penalisation_type=self.nouns_penalisation_type,
-            max_freq=self.max_freq
+            max_freq=self.max_freq,
+            temporal_reward_penalisation_offset = self.temporal_reward_penalisation_offset
         )
         new_penalise_substrings = set(new_penalise_substrings)
         assert new_instance.penalise_substrings.issuperset(new_penalise_substrings), \

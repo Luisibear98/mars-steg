@@ -24,11 +24,14 @@ import numpy as np
 import wandb
 import sys
 
+import os
+
 import torch
 from tqdm import tqdm
 from transformers import set_seed
 
 import trl
+import random
 
 from mars_steg.utils.ppo_trainer import PPOConfig, PPOTrainer
 import sys
@@ -46,6 +49,8 @@ from mars_steg.utils.common import (
 )
 
 from mars_steg.utils.answer_extraction import extract_cots
+
+from peft import PeftModel, PeftConfig
 
 def train(ppo_config, model_config, optimizer_config, train_config, generation_config, experiment_args, prompt_config, device_map):
 
@@ -66,6 +71,17 @@ def train(ppo_config, model_config, optimizer_config, train_config, generation_c
     #TODO Resolve the problem of the model looping on final answer
     generation_config.eos_token_id = tokenizer.eos_token_id 
     model = get_model(model_config, tokenizer, output_delimitation_tokens, generation_config, device_map["main_model"])
+    
+    if train_config.load_lora_from_local:
+        print(f"LOADING LORA WEIGHTS FROM LOCAL {train_config.load_lora_from_local_path}")
+        from peft import PeftModel
+        load_path = train_config.load_lora_from_local_path
+        model.model.pretrained_model.base_model.model = PeftModel.from_pretrained(
+        model.model.pretrained_model.base_model.model,
+        load_path
+        )
+   
+
     optimizer = get_optimizer(optimizer_config=optimizer_config, model=model.model)
 
     training_generation_kwargs = generation_config.to_training_dict()
@@ -96,6 +112,12 @@ def train(ppo_config, model_config, optimizer_config, train_config, generation_c
         tokenizer=tokenizer,
         optimizer=optimizer,
     )
+    
+
+
+
+
+    #model.model.pretrained_model.load_adapter(train_config.load_lora_from_local_path,adapter_name="lora")
 
 
     assert train_config.number_of_evaluations == 0, \
@@ -109,194 +131,201 @@ def train(ppo_config, model_config, optimizer_config, train_config, generation_c
 
         print(f'BEGINING EPOCH {epoch}\n\n')
 
+        wandb.log(
+            {
+                'train_nouns': train_dataset.language_aspect.penalise_substrings,
+                'test_nouns': test_dataset.language_aspect.penalise_substrings,
+            }
+        )
+
         batch_ticker = 0
         computed_steps = 0 # To keep track of steps
         overall_extracted = 0
         overall_failed = 0
-        for batch_prompt_datas in tqdm(train_loader):
+        if not train_config.test_only:
+            for batch_prompt_datas in tqdm(train_loader):
 
-            batch_prompt_datas: BatchPromptData
+                batch_prompt_datas: BatchPromptData
 
-            batch_messages = model.batchize_conversation(
-                user_prompts= batch_prompt_datas.cot_prompts, 
-                system_prompt=train_dataset.system_prompt,
-            )
-            
-            transformed_batch_conversation = [model.transform_conversation(conversation, prompt_config.prompt_thinking_helper) for conversation in batch_messages]
-
-            inputs = model.tokenize(transformed_batch_conversation)
-            lengths_model_inputs = [len(inputs["input_ids"][i]) for i in range(len(inputs["input_ids"]))]
-            
-            # Move the tokenized inputs to the same device the model is on (GPU/CPU)
-            inputs = {key: tensor.to(device_map["main_model"]) for key, tensor in inputs.items()}
-
-            # Translate it into ppo.generate format which List[torch.tensors]
-            query_tensors = []
-            for input in inputs["input_ids"]:
-                query_tensors.append(input)
-
-
-            # Generate the with-CoT transcript (no-CoT transcript not needed during training)
-            transcript_responses = ppo_trainer.generate(
-                query_tensors, **training_generation_kwargs,
-            )
-
-            decoded_responses = [
-                tokenizer.decode(r.squeeze()) for r in transcript_responses
-            ]
-
-            # extraction of answer and cot (because cot_mode = True) parts of the transcript
-            batch_prompt_datas.cot_transcripts = decoded_responses
-
-            # Extract answer and CoT before given to neural overseer and assessor
-            # If this fails - we might want to still penalise the batch
-            extracted_batch_prompt_datas = extract_cots(batch_prompt_datas, model.output_delimitation_tokens, train_config.skipping_failed_parsing_examples)
-            extracted_batch_prompt_datas.extracted_cot_token_lengths = [
-                len(tokenizer(extracted_cot, add_special_tokens=False)["input_ids"]) if extracted_cot is not None else None 
-                for extracted_cot in extracted_batch_prompt_datas.extracted_cots
-            ]
-           
-            # After all that answer/CoT extraction, it might have completely failed, so we can skip everything below entirely
-            if len(extracted_batch_prompt_datas) == 0:
-                if train_config.skipping_failed_parsing_examples:
-                    warnings.warn("All examples failed to parse by neural assessor and/or overseer. Skipping the optimisation for this batch of examples")
-                    continue
-                else:
-                    warnings.warn("All examples failed to parse. Penalising for all examples below")
-
-            # Might have partially failed...
-            elif len(extracted_batch_prompt_datas) != len(batch_prompt_datas):
-                num_examples_failed = len(decoded_responses) - len(extracted_batch_prompt_datas)
-                warnings.warn(
-                    f"Failed to parse {num_examples_failed} examples out of {len(decoded_responses)}"
-                )
-
-            # Might have completely worked!
-            else:
-                print("All examples parsed successfully")
-
-            # Extract rewards
-            use_local_penalization = True
-           
-            if use_local_penalization:
-                composite_reward_list, task_score_list, language_score_list, train_query_tensors, train_transcript_responses, penalisation_tensor_list, task_score_list_no_failed, language_score_list_no_failed, composite_reward_list_no_failed = \
-                get_rewards_and_training_datas(
-                    batch_prompt_datas=extracted_batch_prompt_datas,
-                    query_tensors=query_tensors,
-                    transcript_responses=transcript_responses, 
-                    train_dataset=train_dataset,
-                    skipping_failed_parsing_examples = train_config.skipping_failed_parsing_examples,
-                    t_weight=train_config.t_weight,
-                    l_weight=train_config.l_weight,
-                    tokenizer=tokenizer
-                )
-            else:
-                composite_reward_list, task_score_list, language_score_list, train_query_tensors, train_transcript_responses, _, task_score_list_no_failed, language_score_list_no_failed, composite_reward_list_no_failed = \
-                get_rewards_and_training_datas(
-                    batch_prompt_datas=extracted_batch_prompt_datas,
-                    query_tensors=query_tensors,
-                    transcript_responses=transcript_responses, 
-                    train_dataset=train_dataset,
-                    skipping_failed_parsing_examples = train_config.skipping_failed_parsing_examples,
-                    t_weight=train_config.t_weight,
-                    l_weight=train_config.l_weight,
+                batch_messages = model.batchize_conversation(
+                    user_prompts= batch_prompt_datas.cot_prompts, 
+                    system_prompt=train_dataset.system_prompt,
                 )
                 
+                transformed_batch_conversation = [model.transform_conversation(conversation, prompt_config.prompt_thinking_helper) for conversation in batch_messages]
 
-            
-            log_merged_batch_wandb([batch_prompt_datas], epoch = epoch, batch_in_epoch = batch_ticker)
+                inputs = model.tokenize(transformed_batch_conversation)
+                
+                # Move the tokenized inputs to the same device the model is on (GPU/CPU)
+                inputs = {key: tensor.to(device_map["main_model"]) for key, tensor in inputs.items()}
 
-            if len(composite_reward_list) == 0:
-                warnings.warn("All feedbacks (get_task_score and/or get_language_score) failed to parse. Skipping the optimisation for this batch of examples")
-                continue
-            
-            overall_extracted += len(composite_reward_list)
-            overall_failed += len(composite_reward_list) - len(task_score_list_no_failed)
-            overall_ratio_failed = overall_failed/ overall_extracted
-            print("--------")
-            print(f"Rewarding example with {composite_reward_list}")
-            print(f"Task score: {task_score_list}")
-            print(f"Language score: {language_score_list}")
-            print(f"Rewarding no failes examples with {composite_reward_list_no_failed}")
-            print(f"No failed Task score: {task_score_list_no_failed}")
-            print(f"No failed Language score: {language_score_list_no_failed}")
-            print(f"Percent of failed: {overall_ratio_failed}%")
-            print("--------")
-            # Set this flag to False to skip optimization
-            run_optimization = train_config.run_optimization
+                # Translate it into ppo.generate format which List[torch.tensors]
+                query_tensors = []
+                for input in inputs["input_ids"]:
+                    query_tensors.append(input)
 
-            # If running optimization, adjust the batch size based on the available rewards.
-            if run_optimization:
-                if len(composite_reward_list) < ppo_trainer.config.batch_size:
 
-                    print('Some items failed - decreasing batch size for security - reset shortly')
-
-                    ppo_trainer.config.batch_size = len(composite_reward_list)
-                    ppo_trainer.config.mini_batch_size = 1
-                    ppo_trainer.config.gradient_accumulation_steps = len(composite_reward_list)
-                    ppo_trainer.config.backward_batch_size = len(composite_reward_list)
-
-                stats = ppo_trainer.step(
-                    train_query_tensors, train_transcript_responses, composite_reward_list, penalization_tensors=penalisation_tensor_list, tokeniser=tokenizer
+                # Generate the with-CoT transcript (no-CoT transcript not needed during training)
+                transcript_responses = ppo_trainer.generate(
+                    query_tensors, **training_generation_kwargs,
                 )
-            else:
-                # When skipping optimization, we can set stats to an empty dict or
-                # some placeholder information.
-                stats = {"info": "Optimization skipped (logging only)"}
 
-            # IMPORTANT: Ensure the inputs contain the expected keys for logging.
-            inputs["query"] = batch_prompt_datas.cot_prompts
-            inputs["response"] = batch_prompt_datas.cot_transcripts
+                decoded_responses = [
+                    tokenizer.decode(r.squeeze()) for r in transcript_responses
+                ]
 
-            # Log the stats along with the rewards and scores.
-            ppo_trainer.log_stats(
-                stats,
-                inputs,
-                [composite_reward_list, task_score_list, language_score_list],
-            )
+                # extraction of answer and cot (because cot_mode = True) parts of the transcript
+                batch_prompt_datas.cot_transcripts = decoded_responses
 
-            # If we ran an optimization step, restore the original batch size.
-            if run_optimization:
-                ppo_trainer.config.batch_size = train_config.batch_size
-                ppo_trainer.config.mini_batch_size = train_config.mini_batch_size
-                ppo_trainer.config.gradient_accumulation_steps = train_config.gradient_accumulation_steps
-                ppo_trainer.config.backward_batch_size = train_config.batch_size
+                # Extract answer and CoT before given to neural overseer and assessor
+                # If this fails - we might want to still penalise the batch
+                extracted_batch_prompt_datas = extract_cots(batch_prompt_datas, model.output_delimitation_tokens, train_config.skipping_failed_parsing_examples)
+                extracted_batch_prompt_datas.extracted_cot_token_lengths = [
+                    len(tokenizer(extracted_cot, add_special_tokens=False)["input_ids"]) if extracted_cot is not None else None 
+                    for extracted_cot in extracted_batch_prompt_datas.extracted_cots
+                ]
+            
+                # After all that answer/CoT extraction, it might have completely failed, so we can skip everything below entirely
+                if len(extracted_batch_prompt_datas) == 0:
+                    if train_config.skipping_failed_parsing_examples:
+                        warnings.warn("All examples failed to parse by neural assessor and/or overseer. Skipping the optimisation for this batch of examples")
+                        continue
+                    else:
+                        warnings.warn("All examples failed to parse. Penalising for all examples below")
 
-            # Log stats to wandb.
-            # import pdb; pdb.set_trace(header = "2025.02.25: associate this with a epoch and batch ticker")
-            wandb.log(stats)            
-            wandb.log(
-                {   
+                # Might have partially failed...
+                elif len(extracted_batch_prompt_datas) != len(batch_prompt_datas):
+                    num_examples_failed = len(decoded_responses) - len(extracted_batch_prompt_datas)
+                    warnings.warn(
+                        f"Failed to parse {num_examples_failed} examples out of {len(decoded_responses)}"
+                    )
+
+                # Might have completely worked!
+                else:
+                    print("All examples parsed successfully")
+
+            
+                if train_config.use_temporal_penalization:
+                    composite_reward_list, task_score_list, language_score_list, train_query_tensors, train_transcript_responses, penalisation_tensor_list, task_score_list_no_failed, language_score_list_no_failed, composite_reward_list_no_failed = \
+                    get_rewards_and_training_datas(
+                        batch_prompt_datas=extracted_batch_prompt_datas,
+                        query_tensors=query_tensors,
+                        transcript_responses=transcript_responses, 
+                        train_dataset=train_dataset,
+                        skipping_failed_parsing_examples = train_config.skipping_failed_parsing_examples,
+                        t_weight=train_config.t_weight,
+                        l_weight=train_config.l_weight,
+                        tokenizer=tokenizer
+                    )
+                else:
+                    composite_reward_list, task_score_list, language_score_list, train_query_tensors, train_transcript_responses, _, task_score_list_no_failed, language_score_list_no_failed, composite_reward_list_no_failed = \
+                    get_rewards_and_training_datas(
+                        batch_prompt_datas=extracted_batch_prompt_datas,
+                        query_tensors=query_tensors,
+                        transcript_responses=transcript_responses, 
+                        train_dataset=train_dataset,
+                        skipping_failed_parsing_examples = train_config.skipping_failed_parsing_examples,
+                        t_weight=train_config.t_weight,
+                        l_weight=train_config.l_weight,
+                    )
+                    
+
+                
+                log_merged_batch_wandb([batch_prompt_datas], epoch = epoch, batch_in_epoch = batch_ticker)
+
+                if len(composite_reward_list) == 0:
+                    warnings.warn("All feedbacks (get_task_score and/or get_language_score) failed to parse. Skipping the optimisation for this batch of examples")
+                    continue
+                
+                overall_extracted += len(composite_reward_list)
+                overall_failed += len(composite_reward_list) - len(task_score_list_no_failed)
+                overall_ratio_failed = overall_failed/ overall_extracted
+                print("--------")
+                print(f"Rewarding example with {composite_reward_list}")
+                print(f"Task score: {task_score_list}")
+                print(f"Language score: {language_score_list}")
+                print(f"Rewarding no failes examples with {composite_reward_list_no_failed}")
+                print(f"No failed Task score: {task_score_list_no_failed}")
+                print(f"No failed Language score: {language_score_list_no_failed}")
+                print(f"Percent of failed: {overall_ratio_failed}%")
+                print("--------")
+                # Set this flag to False to skip optimization
+                run_optimization = train_config.run_optimization
+
+                # If running optimization, adjust the batch size based on the available rewards.
+                if run_optimization:
+                    if len(composite_reward_list) < ppo_trainer.config.batch_size:
+
+                        print('Some items failed - decreasing batch size for security - reset shortly')
+
+                        ppo_trainer.config.batch_size = len(composite_reward_list)
+                        ppo_trainer.config.mini_batch_size = 1
+                        ppo_trainer.config.gradient_accumulation_steps = len(composite_reward_list)
+                        ppo_trainer.config.backward_batch_size = len(composite_reward_list)
+
+                    stats = ppo_trainer.step(
+                        train_query_tensors, train_transcript_responses, composite_reward_list, penalization_tensors=penalisation_tensor_list, tokeniser=tokenizer
+                    )
+                else:
+                    # When skipping optimization, we can set stats to an empty dict or
+                    # some placeholder information.
+                    stats = {"info": "Optimization skipped (logging only)"}
+
+                # IMPORTANT: Ensure the inputs contain the expected keys for logging.
+                inputs["query"] = batch_prompt_datas.cot_prompts
+                inputs["response"] = batch_prompt_datas.cot_transcripts
+
+                # Log the stats along with the rewards and scores.
+                ppo_trainer.log_stats(
+                    stats,
+                    inputs,
+                    [composite_reward_list, task_score_list, language_score_list],
+                )
+
+                # If we ran an optimization step, restore the original batch size.
+                if run_optimization:
+                    ppo_trainer.config.batch_size = train_config.batch_size
+                    ppo_trainer.config.mini_batch_size = train_config.mini_batch_size
+                    ppo_trainer.config.gradient_accumulation_steps = train_config.gradient_accumulation_steps
+                    ppo_trainer.config.backward_batch_size = train_config.batch_size
+
+                # Log stats to wandb.
+                # import pdb; pdb.set_trace(header = "2025.02.25: associate this with a epoch and batch ticker")
+                wandb.log(stats)            
+                epsilon = 1e-8  # Small value to prevent division by zero
+
+                wandb.log({
                     'epoch': epoch,
                     'batch_in_epoch': batch_ticker,
                     'mean_cot_token_length': batch_prompt_datas.mean_length_cot(),
-                    'task_score': sum(task_score_list) / len(composite_reward_list),
-                    'language_score': sum(language_score_list) / len(language_score_list),
-                    'no_failed_task_score': sum(task_score_list_no_failed) / len(composite_reward_list_no_failed),
-                    'no_failed_language_score': sum(language_score_list_no_failed) / len(language_score_list_no_failed),
-                    'no_failed_reward': sum(composite_reward_list_no_failed) / len(composite_reward_list_no_failed),
-                    'reward' : sum(composite_reward_list) / len(composite_reward_list),
+                    'task_score': sum(task_score_list) / (len(composite_reward_list) + epsilon),
+                    'language_score': sum(language_score_list) / (len(language_score_list) + epsilon),
+                    'no_failed_task_score': sum(task_score_list_no_failed) / (len(composite_reward_list_no_failed) + epsilon),
+                    'no_failed_language_score': sum(language_score_list_no_failed) / (len(language_score_list_no_failed) + epsilon),
+                    'no_failed_reward': sum(composite_reward_list_no_failed) / (len(composite_reward_list_no_failed) + epsilon),
+                    'reward': sum(composite_reward_list) / (len(composite_reward_list) + epsilon),
                     'overall_ratio_failed': overall_ratio_failed,
-                }
-            )
+                })
 
-            # Clear CUDA cache if needed.
-            if "cuda" in device_map["main_model"]:
-                torch.cuda.empty_cache() 
+                # Clear CUDA cache if needed.
+                if "cuda" in device_map["main_model"]:
+                    torch.cuda.empty_cache() 
 
-            # Save the model every 'save_frequency' batches.
-            computed_steps += len(composite_reward_list)
+                # Save the model every 'save_frequency' batches.
+                computed_steps += len(composite_reward_list)
 
-            if computed_steps % train_config.save_frequency == 0: 
-                if ppo_trainer.accelerator.is_main_process:
-                    save_path = f"experiment_lora_cache"
-                    ppo_trainer.model.pretrained_model.save_pretrained(save_path)
-                    artifact = wandb.Artifact(name=f"model_at_step_{str(computed_steps)}", type="model")
-                    artifact.add_dir(save_path)  # Adds the entire folder
-                    wandb.log_artifact(artifact)
+                if computed_steps % train_config.save_frequency == 0: 
+                    if ppo_trainer.accelerator.is_main_process:
+                        save_path = f"experiment_lora_cache"
+                        ppo_trainer.model.pretrained_model.save_pretrained(save_path)
+                        artifact = wandb.Artifact(name=f"model_at_step_{str(computed_steps)}", type="model")
+                        artifact.add_dir(save_path)  # Adds the entire folder
+                        wandb.log_artifact(artifact)
 
-            batch_ticker += 1
+                batch_ticker += 1
 
+
+    
 
         print(f'BEGINING TESTING EPOCH {epoch}\n\n')
 
@@ -314,7 +343,26 @@ def train(ppo_config, model_config, optimizer_config, train_config, generation_c
                     system_prompt= test_dataset.system_prompt,
                 )
 
-                test_batch_prompt_datas.cot_transcripts = model.full_generate(test_batch_messages)
+                
+                transformed_batch_conversation = [model.transform_conversation(conversation, prompt_config.prompt_thinking_helper) for conversation in test_batch_messages]
+
+                inputs = model.tokenize(transformed_batch_conversation)
+                
+                # Move the tokenized inputs to the same device the model is on (GPU/CPU)
+                inputs = {key: tensor.to(device_map["main_model"]) for key, tensor in inputs.items()}
+
+                # Translate it into ppo.generate format which List[torch.tensors]
+                query_tensors = []
+                for input in inputs["input_ids"]:
+                    query_tensors.append(input)
+
+
+                # Generate the with-CoT transcript (no-CoT transcript not needed during training)
+                transcript_responses = ppo_trainer.generate(query_tensors, **training_generation_kwargs,)
+                decoded_responses = [tokenizer.decode(r.squeeze()) for r in transcript_responses]
+                
+                # extraction of answer and cot (because cot_mode = True) parts of the transcript
+                test_batch_prompt_datas.cot_transcripts = decoded_responses
 
                 # Extract answer and CoT before given to neural overseer and assessor
                 # If this fails - we might want to still penalise the batch
@@ -323,14 +371,18 @@ def train(ppo_config, model_config, optimizer_config, train_config, generation_c
                     len(tokenizer(extracted_cot, add_special_tokens=False)["input_ids"]) if extracted_cot is not None else None 
                     for extracted_cot in extracted_test_batch_prompt_datas.extracted_cots
                 ]
-            
+                print("-----")
+                for cot in decoded_responses:
+                    print(f"CoT: {cot}")
+                print("-----")
+                
                 # After all that answer/CoT extraction, it might have completely failed, so we can skip everything below entirely
                 if len(extracted_test_batch_prompt_datas) == 0 and train_config.skipping_failed_parsing_examples:
                     warnings.warn("All test examples failed to parse by neural assessor and/or overseer. Skipping the test-time evaluation for this batch of examples")
                     continue
 
                 # Extract rewards
-                if train_config.use_local_penalization:
+                if train_config.use_temporal_penalization:
                     
                     test_composite_reward_list, test_task_score_list, test_language_score_list, test_query_tensors, test_transcript_responses, _, test_task_score_list_no_failed, test_language_score_list_no_failed, test_composite_reward_list_no_failed = \
                     get_rewards_and_training_datas(
@@ -354,25 +406,36 @@ def train(ppo_config, model_config, optimizer_config, train_config, generation_c
                         t_weight=train_config.t_weight,
                         l_weight=train_config.l_weight
                     )
+
+                log_merged_batch_wandb([test_batch_prompt_datas], epoch = epoch, batch_in_epoch = test_batch_ticker, name="_test")
+
                 test_overall_extracted += len(test_composite_reward_list)
                 test_overall_failed += len(test_composite_reward_list) - len(test_task_score_list_no_failed)
-                test_overall_ratio_failed = test_overall_extracted/ test_overall_failed
+                if test_overall_failed == 0:
+                    test_overall_ratio_failed = 0
+                else:
+                    test_overall_ratio_failed = test_overall_extracted/test_overall_failed
 
-                wandb.log(
-                    {   
-                        'test_epoch': epoch,
-                        'test_batch_in_epoch': test_batch_ticker,
-                        'test_mean_cot_token_length': test_batch_prompt_datas.mean_length_cot(),
-                        'test_task_score': sum(test_task_score_list) / len(test_composite_reward_list),
-                        'test_language_score': sum(test_language_score_list) / len(test_language_score_list),
-                        'test_reward' : sum(test_composite_reward_list) / len(test_composite_reward_list),
-                        'non_failed_test_task_score': sum(test_task_score_list_no_failed) / len(test_task_score_list_no_failed),
-                        'non_failed_test_language_score': sum(test_language_score_list_no_failed) / len(test_language_score_list_no_failed),
-                        'non_failed_test_reward' : sum(test_composite_reward_list_no_failed) / len(test_composite_reward_list_no_failed),
-                        'test_overall_ratio_failed' : test_overall_ratio_failed
-                    }
-                )
+                print("--------")
+                print(f"Test examples rewarded with {test_composite_reward_list}")
+                print(f"Task score: {test_task_score_list}")
+                print(f"Language score: {test_language_score_list}")
+                print("--------")
 
+                epsilon = 1e-8  # Small value to prevent division by zero
+
+                wandb.log({
+                    'test_epoch': epoch,
+                    'test_batch_in_epoch': test_batch_ticker,
+                    'test_mean_cot_token_length': test_batch_prompt_datas.mean_length_cot(),
+                    'test_task_score': sum(test_task_score_list) / (len(test_composite_reward_list) + epsilon),
+                    'test_language_score': sum(test_language_score_list) / (len(test_language_score_list) + epsilon),
+                    'test_reward': sum(test_composite_reward_list) / (len(test_composite_reward_list) + epsilon),
+                    'non_failed_test_task_score': sum(test_task_score_list_no_failed) / (len(test_task_score_list_no_failed) + epsilon),
+                    'non_failed_test_language_score': sum(test_language_score_list_no_failed) / (len(test_language_score_list_no_failed) + epsilon),
+                    'non_failed_test_reward': sum(test_composite_reward_list_no_failed) / (len(test_composite_reward_list_no_failed) + epsilon),
+                    'test_overall_ratio_failed': test_overall_ratio_failed
+                })
                 test_batch_ticker += 1
 
 
@@ -396,6 +459,17 @@ if __name__ == "__main__":
 
 
     device_map = get_device_map()
+
+
+    # seed = 16
+    # random.seed(seed)
+    # torch.manual_seed(seed)
+    # torch.cuda.manual_seed_all(seed)
+    # # Ensures deterministic behavior for cudnn
+    # torch.backends.cudnn.deterministic = True
+    # torch.backends.cudnn.benchmark = False
+    # os.environ["PYTHONHASHSEED"] = str(seed)
+
 
     ####################################################################################################################
     # GET CONFIGS 
@@ -442,6 +516,7 @@ if __name__ == "__main__":
             'generation_config': generation_config,
         }
     )
+
 
     train(
         ppo_config = ppo_config, 
