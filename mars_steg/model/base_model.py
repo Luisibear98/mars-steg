@@ -325,7 +325,8 @@ class BaseModel(metaclass=ABCMeta):
                       is_neural_assessor: bool = False, 
                       is_neural_overseer: bool = False, 
                       neural_assessor_thinking_helper: str = None,
-                      neural_overseer_thinking_helper: str = None):
+                      neural_overseer_thinking_helper: str = None,
+                      thinking_helper: Optional[str] = None) -> List[str]:
         """
         Generates responses for a list of conversations using the model. The inputs are tokenized 
         and processed before generating the outputs. The responses are then decoded back to text.
@@ -355,7 +356,7 @@ class BaseModel(metaclass=ABCMeta):
                     for conversation in conversations_list
                     ]
         else:
-            transformed_conversations = [self.transform_conversation(conversation) for conversation in conversations_list]
+            transformed_conversations = [self.transform_conversation(conversation, thinking_helper) for conversation in conversations_list]
         inputs = self.tokenize(conversations_list=transformed_conversations)
         inputs = {key: tensor.to(self.device) for key, tensor in inputs.items()}
 
