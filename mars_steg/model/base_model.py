@@ -365,9 +365,10 @@ class BaseModel(metaclass=ABCMeta):
         # Run the reference model
         outputs = self.model.generate(**inputs, **generation_kwargs)
 
-        # These always work, so can diretly set
+        #Not sure if we count correctly the padding or not
+        prompt_lengths = [len(input_id[input_id != self.tokenizer.pad_token_id]) for input_id in inputs["input_ids"]]
+
         decoded_responses = [
-            # TODO: self.tokenizer.decode(r.squeeze()[prompt_length:]) for prompt_length, r in zip(prompt_lengths, outputs)
-            self.tokenizer.decode(r.squeeze()) for r in outputs
+            self.tokenizer.decode(r.squeeze()[prompt_length:], skip_special_tokens=True) for prompt_length, r in zip(prompt_lengths, outputs)
         ]
         return decoded_responses
