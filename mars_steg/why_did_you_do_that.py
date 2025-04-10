@@ -74,14 +74,9 @@ def run_inference(num_trials: int,
 
                 
                 transformed_batch_conversation = [model.transform_conversation(conversation, prompt_config.prompt_thinking_helper) for conversation in batch_messages]
-
-                inputs = model.tokenize(transformed_batch_conversation)
-
-                # Move the tokenized inputs to the same device the model is on (GPU/CPU)
-                inputs: Dict[str: torch.TensorType] = {key: tensor.to(device_map["main_model"]) for key, tensor in inputs.items()}
                 
                 # Generate the with-CoT transcript (no-CoT transcript not needed during training)
-                transcript_responses = model.full_generate(inputs, generation_kwargs)
+                transcript_responses = model.full_generate(transformed_batch_conversation, generation_kwargs)
                 decoded_responses = [tokenizer.decode(r.squeeze()) for r in transcript_responses]
                 
                 # extraction of answer and cot (because cot_mode = True) parts of the transcript
