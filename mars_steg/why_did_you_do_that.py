@@ -77,7 +77,7 @@ def run_inference(num_trials: int,
                 
                 # extraction of answer and cot (because cot_mode = True) parts of the transcript
                 batch_prompt_datas.cot_transcripts = decoded_responses
-                log_merged_batch_wandb([batch_prompt_datas], trial = trial, batch_in_trial = batch_ticker, name="_test")
+                log_merged_batch_wandb([batch_prompt_datas], epoch = trial, batch_in_epoch = batch_ticker, name="_test")
 
                 batch_ticker += 1
 
