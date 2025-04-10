@@ -17,7 +17,8 @@ Examples:
 
 from __future__ import annotations
 
-from typing import List, Dict, Any, Tuple
+from typing import List, Optional, Set, Tuple
+
 from mars_steg.config import PromptConfig
 from mars_steg.language.base_language_aspect import LanguageAspect
 from mars_steg.language.language_aspects.theory_of_mind_aspect import ToMTokenBanTask
@@ -137,11 +138,11 @@ class TheoryOfMindTask(TorchDatasetTask):
             raise ValueError("index received was greater than dataset length")
         
         # Get story and question 
-        story = self.dataset.iloc[index]["story_structure"]
+        ## story = self.dataset.iloc[index]["story_structure"]
         infilled_story = self.dataset.iloc[index]["infilled_story"]
         question = self.dataset.iloc[index]["question"]
         
-        prompt = f"{self.system_prompt}\n\nStory: {story}\n\nQuestion: {question}"
+        prompt = f"{self.system_prompt}\n\nStory: {infilled_story}\n\nQuestion: {question}"
 
         return prompt
 
@@ -238,76 +239,88 @@ class TheoryOfMindTask(TorchDatasetTask):
         # Return raw similarity score, can be thresholded by the caller
         return similarity
 
-    def test_train_split(self, train_proportion: float, validation_proportion: float, mode: str = 'vanilla') -> Tuple[TorchDatasetTask, None, TorchDatasetTask]:
+    def test_train_split(
+        self, 
+        train_proportion: float, 
+        validation_proportion: float, 
+        *_,
+        mode: str = 'vanilla',
+        test_nouns: Optional[List[str]],
+    ) -> Tuple[TorchDatasetTask, None, TorchDatasetTask]:
         """
         if mode == vanilla:
             same as before
 
-        elif mode == unseen_name:
+        elif mode == unseen_nouns:
             - assert validation_proportion == 0.0
             - get list of names and how many prompts they appear in in the dataset
             - randomly subselect a list of 'test names', which accounts for 1 - train_proportion of the dataset rows
             - put all prompts with test names into the test set
 
-        elif mode == unseen_name_as_role:
+        elif mode == unseen_nouns_as_role:
             - future work!
         """
         if mode == 'vanilla':
             return super().test_train_split(train_proportion, validation_proportion)
         
-        elif mode == 'unseen_name':
+        elif mode == 'unseen_nouns':
             assert validation_proportion == 0.0
-            
-            # get list of names
-            names: List[str] = self.nouns['names']
 
-            # count how many prompts contain each name
-            name_counts = {}
-            for name in names:
-                # Count prompts that contain each name
-                mask = self.dataset['infilled_story'].str.contains(name, regex=False)
-                name_counts[name] = mask.sum()
+            if test_nouns is None:
             
-            # Calculate proportion of prompts each name appears in
-            total_prompts = len(self.dataset)
-            name_proportion_of_prompts = {name: count / total_prompts for name, count in name_counts.items()}
-            
-            # Randomly shuffle names
-            shuffled_names = list(name_proportion_of_prompts.keys())
-            random.shuffle(shuffled_names)
+                # get list of names
+                names: List[str] = self.nouns['names']
 
-            # Initialize test and train sets
-            test_names: List[str] = []
-            test_proportion_sum = 0.0
-            target_test_proportion = 1.0 - train_proportion
-            
-            # Randomized approach: keep adding randomly selected names until we reach the target proportion
-            for name in shuffled_names:
-                if test_proportion_sum < target_test_proportion:
-                    test_names.append(name)
-                    test_proportion_sum += name_proportion_of_prompts[name]
-                else:
-                    break
-            
-            # If we've overshot our target by a significant amount, try to remove a name to get closer
-            if test_proportion_sum > target_test_proportion * 1.2:  # 20% tolerance
-                # Try to find a name that, if removed, would bring us closer to target
-                best_distance = test_proportion_sum - target_test_proportion
-                best_name_to_remove = None
+                # count how many prompts contain each name
+                name_counts = {}
+                for name in names:
+                    # Count prompts that contain each name
+                    mask = self.dataset['infilled_story'].str.contains(name, regex=False)
+                    name_counts[name] = mask.sum()
                 
-                for name in test_names:
-                    new_proportion = test_proportion_sum - name_proportion_of_prompts[name]
-                    distance = abs(new_proportion - target_test_proportion)
+                # Calculate proportion of prompts each name appears in
+                total_prompts = len(self.dataset)
+                name_proportion_of_prompts = {name: count / total_prompts for name, count in name_counts.items()}
+                
+                # Randomly shuffle names
+                shuffled_names = list(name_proportion_of_prompts.keys())
+                random.shuffle(shuffled_names)
+
+                # Initialize test and train sets
+                test_names: List[str] = []
+                test_proportion_sum = 0.0
+                target_test_proportion = 1.0 - train_proportion
+                
+                # Randomized approach: keep adding randomly selected names until we reach the target proportion
+                for name in shuffled_names:
+                    if test_proportion_sum < target_test_proportion:
+                        test_names.append(name)
+                        test_proportion_sum += name_proportion_of_prompts[name]
+                    else:
+                        break
+                
+                # If we've overshot our target by a significant amount, try to remove a name to get closer
+                if test_proportion_sum > target_test_proportion * 1.2:  # 20% tolerance
+                    # Try to find a name that, if removed, would bring us closer to target
+                    best_distance = test_proportion_sum - target_test_proportion
+                    best_name_to_remove = None
                     
-                    if distance < best_distance:
-                        best_distance = distance
-                        best_name_to_remove = name
-                
-                # Remove the name if it improves our proportion
-                if best_name_to_remove:
-                    test_names.remove(best_name_to_remove)
-                    test_proportion_sum -= name_proportion_of_prompts[best_name_to_remove]
-            
+                    for name in test_names:
+                        new_proportion = test_proportion_sum - name_proportion_of_prompts[name]
+                        distance = abs(new_proportion - target_test_proportion)
+                        
+                        if distance < best_distance:
+                            best_distance = distance
+                            best_name_to_remove = name
+                    
+                    # Remove the name if it improves our proportion
+                    if best_name_to_remove:
+                        test_names.remove(best_name_to_remove)
+                        test_proportion_sum -= name_proportion_of_prompts[best_name_to_remove]
+
+            else:
+                test_names = test_nouns
+        
             # Remaining names go to train set
             train_names: List[str] = [name for name in names if name not in test_names]
             

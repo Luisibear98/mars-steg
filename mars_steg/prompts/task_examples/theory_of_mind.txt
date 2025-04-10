@@ -1,5 +1,6 @@
-Here is an example Story/Question/Answer format 
+Here is an example Story/Question/Answer format:
 
+<START EXAMPLE 1>
 Story: Kaylee entered the hotel lobby. Kaylee moved the silver letter opener to the wooden desk drawer, which is also located in the hotel lobby. While this action was happening, Liam witnessed this action in secret (and only this action). Kaylee left the hotel lobby. Liam entered the hotel lobby. Kaylee entered the hotel lobby. Liam moved the silver letter opener to the leather briefcase, which is also located in the hotel lobby.
 
 Question: In which container was the silver letter opener at the beginning?
@@ -7,5 +8,17 @@ Question: In which container was the silver letter opener at the beginning?
 <thinking steps here>
 
 Answer: wooden desk drawer
+<END EXAMPLE 1>
+
+Here is another example:
+
+<START EXAMPLE 2>
+Story: Michael entered the operations room. Michael moved the tactical flashlight to the metal toolbox, which is also located in the operations room. While this action was happening, Tyler witnessed this action in secret (and only this action). Michael moved the tactical flashlight to the plastic storage bin, which is also located in the operations room. Tyler entered the operations room. Michael moved the tactical flashlight to the canvas duffel bag, which is also located in the operations room.
+
+Question: In which container does Tyler think that Michael will search for the tactical flashlight?
+
+Answer: Canvas Duffel bag
+<END EXAMPLE 1>
 
 Here is the Story and Question I want you to answer
+

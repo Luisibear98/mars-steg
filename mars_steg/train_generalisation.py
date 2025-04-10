@@ -73,14 +73,20 @@ def train(ppo_config, model_config, optimizer_config, train_config, generation_c
     model = get_model(model_config, tokenizer, output_delimitation_tokens, generation_config, device_map["main_model"])
     
     if train_config.load_lora_from_local:
-        print(f"LOADING LORA WEIGHTS FROM LOCAL {train_config.load_lora_from_local_path}")
+        print(f"LOADING LORA WEIGHTS FROM {train_config.load_lora_from_local_path}")
         from peft import PeftModel
         load_path = train_config.load_lora_from_local_path
         model.model.pretrained_model.base_model.model = PeftModel.from_pretrained(
-        model.model.pretrained_model.base_model.model,
-        load_path
+            model.model.pretrained_model.base_model.model,
+            load_path
         )
-   
+        
+        # Pick these up from wandb artifact! - TODO with Luis!
+        test_nouns = ...
+
+    else:
+        test_nouns = None
+
 
     optimizer = get_optimizer(optimizer_config=optimizer_config, model=model.model)
 
@@ -101,7 +107,10 @@ def train(ppo_config, model_config, optimizer_config, train_config, generation_c
         training_model = model,
         override_create_ref_model = train_config.create_ref_model,
         number_shared_layers_for_ref_model = train_config.number_shared_layers_for_ref_model,
-        test_train_split_kwargs={'mode': 'unseen_name'},
+        test_train_split_kwargs={
+            'mode': 'unseen_nouns',
+            'test_nouns': test_nouns,
+        },
         device_map=device_map
     )
 
@@ -112,13 +121,9 @@ def train(ppo_config, model_config, optimizer_config, train_config, generation_c
         tokenizer=tokenizer,
         optimizer=optimizer,
     )
-    
-
-
 
 
     #model.model.pretrained_model.load_adapter(train_config.load_lora_from_local_path,adapter_name="lora")
-
 
     assert train_config.number_of_evaluations == 0, \
         "train_generalisation.py is intended for train_config.number_of_evaluations == 0, it will automatically evaluate at the end of each epoch"
