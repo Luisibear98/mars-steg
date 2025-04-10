@@ -321,11 +321,12 @@ class BaseModel(metaclass=ABCMeta):
         return batch_messages
 
     def full_generate(self, 
-                      conversations_list: Conversation | List[List[str]], 
-                      is_neural_assessor: bool = False, 
-                      is_neural_overseer: bool = False, 
-                      neural_assessor_thinking_helper: str = None,
-                      neural_overseer_thinking_helper: str = None):
+        conversations_list: Conversation | List[List[str]], 
+        is_neural_assessor: bool = False, 
+        is_neural_overseer: bool = False, 
+        neural_assessor_thinking_helper: str = None,
+        neural_overseer_thinking_helper: str = None
+        ):
         """
         Generates responses for a list of conversations using the model. The inputs are tokenized 
         and processed before generating the outputs. The responses are then decoded back to text.
@@ -356,6 +357,7 @@ class BaseModel(metaclass=ABCMeta):
                     ]
         else:
             transformed_conversations = [self.transform_conversation(conversation) for conversation in conversations_list]
+
         inputs = self.tokenize(conversations_list=transformed_conversations)
         inputs = {key: tensor.to(self.device) for key, tensor in inputs.items()}
 

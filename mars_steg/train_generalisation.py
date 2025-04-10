@@ -50,6 +50,8 @@ from mars_steg.utils.common import (
 
 from mars_steg.utils.answer_extraction import extract_cots
 
+from peft import PeftModel
+
 
 def train(ppo_config, model_config, optimizer_config, train_config, generation_config, experiment_args, prompt_config, device_map):
 
@@ -73,7 +75,7 @@ def train(ppo_config, model_config, optimizer_config, train_config, generation_c
     
     if train_config.load_lora_from_local:
         print(f"LOADING LORA WEIGHTS FROM {train_config.load_lora_from_local_path}")
-        from peft import PeftModel
+        
         load_path = train_config.load_lora_from_local_path
         model.model.pretrained_model.base_model.model = PeftModel.from_pretrained(
             model.model.pretrained_model.base_model.model,
