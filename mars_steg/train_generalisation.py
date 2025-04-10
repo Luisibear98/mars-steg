@@ -321,7 +321,7 @@ def train(ppo_config, model_config, optimizer_config, train_config, generation_c
 
 
                 print(batch_ticker % train_config.save_frequency)
-                if batch_ticker % 2 == 0:
+                if batch_ticker % train_config.save_frequency == 0:
                     if ppo_trainer.accelerator.is_main_process:
                         save_path = f"experiment_lora_cache"
                         run_name = f"{run_wandb.id}"
