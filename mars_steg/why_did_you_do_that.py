@@ -71,13 +71,9 @@ def run_inference(num_trials: int,
                     user_prompts= batch_prompt_datas.cot_prompts, 
                     system_prompt= dataset.system_prompt,
                 )
-
-                
-                transformed_batch_conversation = [model.transform_conversation(conversation, prompt_config.prompt_thinking_helper) for conversation in batch_messages]
                 
                 # Generate the with-CoT transcript (no-CoT transcript not needed during training)
-                transcript_responses = model.full_generate(transformed_batch_conversation, generation_kwargs)
-                decoded_responses = [tokenizer.decode(r.squeeze()) for r in transcript_responses]
+                decoded_responses = model.full_generate(batch_messages, generation_kwargs, thinking_helper=prompt_config.prompt_thinking_helper)
                 
                 # extraction of answer and cot (because cot_mode = True) parts of the transcript
                 batch_prompt_datas.cot_transcripts = decoded_responses
