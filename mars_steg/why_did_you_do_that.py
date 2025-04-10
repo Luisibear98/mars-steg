@@ -73,7 +73,7 @@ def run_inference(num_trials: int,
                 )
                 
                 # Generate the with-CoT transcript (no-CoT transcript not needed during training)
-                decoded_responses = model.full_generate(batch_messages, generation_kwargs, thinking_helper=prompt_config.prompt_thinking_helper)
+                decoded_responses = model.full_generate(batch_messages, generation_kwargs, is_neural_assessor=False, is_neural_overseer= False, thinking_helper=prompt_config.prompt_thinking_helper)
                 
                 # extraction of answer and cot (because cot_mode = True) parts of the transcript
                 batch_prompt_datas.cot_transcripts = decoded_responses
