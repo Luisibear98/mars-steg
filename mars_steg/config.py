@@ -298,6 +298,38 @@ class PromptConfig:
     #         raise ValueError(f'The value of {name} should be a string')
         
 
+@dataclass
+class InferenceConfig:
+    """
+    Dataclass for inference configuration parameters.
+
+    Attributes
+    ----------
+    log_with : Optional[str]
+        The logging tool to use. Choices are "wandb" or None.
+    batch_size : int
+        The batch size.
+    seed : int
+        The seed.
+    num_trials : int
+        The number of trials to run inference.
+    is_peft_model: bool
+        Wheter we are using peft model
+    load_lora_from_local: bool
+        Wheter we are loading lora adaptaters
+    lora_adaptaters_artefact_reference: str 
+        Name of the artifact we want to use for LoRA adaptaters
+
+
+    """
+
+    log_with: Optional[str]  # e.g., "wandb" or None
+    batch_size: int
+    seed: int
+    num_trials: int
+    is_peft_model: bool
+    load_lora_from_local: bool
+    lora_adaptaters_artefact_reference: str #Path to the lora model to load
 
 
 
@@ -671,6 +703,79 @@ class ConfigLoader:
             "Model": asdict(model_config),
             "Optimizer": asdict(optimizer_config),
             "Train": asdict(train_config),
+            "Generation": asdict(generation_config),
+        }
+        with open(yaml_file, "w") as file:
+            yaml.dump(config_dict, file)
+
+class InferenceConfigLoader:
+
+    """
+    Class for loading and saving the configuration dataclasses to a YAML file.
+
+    Methods
+    -------
+    load_config(yaml_file: str) -> Tuple[ModelConfig, InferenceConfig, GenerationConfig]
+        Load YAML data and map it to configuration dataclasses.
+    save_config(yaml_file: str, model_config: ModelConfig, inference_config: InferenceConfig, generation_config: GenerationConfig)
+        Save the dataclass configurations back to a YAML file.
+
+    """
+
+    @staticmethod
+    def load_config(*yaml_files: List[str]) -> Tuple[ModelConfig, InferenceConfig, GenerationConfig]:
+        """
+
+        Load YAML data and map it to configuration dataclasses.
+
+        Parameters
+        ----------
+        yaml_file : str
+            The path to the YAML file.
+
+        Returns
+        -------
+        Tuple[ModelConfig, InferenceConfig, GenerationConfig]
+            The configuration dataclasses.
+
+        """
+
+        config_dict = load_yaml(yaml_files[0])
+        # Create instances of the dataclasses
+        model_config = ModelConfig(**config_dict["Model"])
+        inference_config = InferenceConfig(**config_dict["Inference"])
+        generation_config = GenerationConfig(**config_dict["Generation"])
+
+        return model_config, inference_config, generation_config
+    
+
+    @staticmethod
+    def save_config(
+        yaml_file: str,
+        model_config: ModelConfig,
+        inference_config: InferenceConfig,
+        generation_config: GenerationConfig
+    ):
+        
+        """
+        Save the dataclass configurations back to a YAML file.
+
+        Parameters
+        ----------
+        yaml_file : str
+            The path to the YAML file.
+        model_config : ModelConfig
+            The model configuration dataclass.
+        inference_config : InferenceConfig
+            The inference configuration dataclass.
+        generation_config : GenerationConfig
+            The generation configuration dataclass.
+
+        """
+        
+        config_dict = {
+            "Model": asdict(model_config),
+            "Inference": asdict(inference_config),
             "Generation": asdict(generation_config),
         }
         with open(yaml_file, "w") as file:
