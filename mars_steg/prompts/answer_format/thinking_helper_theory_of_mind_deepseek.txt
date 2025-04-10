@@ -1,4 +1,4 @@
 <think>
-I will need to present my final answer in lower case, just the answer in the format of 'Answer: answer' at the end of my answer.
+I will need to present my final answer, and just the answer in the format of 'Answer: answer' at the end of my answer.
 I will only put my final answer after 'Answer: ' and nothing else.
 Now, let’s carefully think about the question step by step.
