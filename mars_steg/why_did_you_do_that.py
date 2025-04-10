@@ -52,8 +52,6 @@ def run_inference(num_trials: int,
         loader: DataLoader, 
         dataset: TorchDatasetTask, 
         prompt_config: PromptConfig,
-        device_map: Dict[str: str],
-        generation_kwargs: Dict[str: Any]
         ) -> None:
 
     for trial in range(num_trials):
@@ -73,7 +71,7 @@ def run_inference(num_trials: int,
                 )
                 
                 # Generate the with-CoT transcript (no-CoT transcript not needed during training)
-                decoded_responses = model.full_generate(batch_messages, generation_kwargs, is_neural_assessor=False, is_neural_overseer= False, thinking_helper=prompt_config.prompt_thinking_helper)
+                decoded_responses = model.full_generate(batch_messages, is_neural_assessor=False, is_neural_overseer= False, thinking_helper=prompt_config.prompt_thinking_helper)
                 
                 # extraction of answer and cot (because cot_mode = True) parts of the transcript
                 batch_prompt_datas.cot_transcripts = decoded_responses
@@ -155,8 +153,6 @@ def main() -> None:
         artifact_lora_adaptaters_path
         )
 
-    generation_kwargs = generation_config.to_training_dict()
-
     _, _, test_dataset, _, _, test_loader, _ = get_dataloaders_and_ref_model(
     dataset_class_name = experiment_args.dataset_class_name,
     penalisation_class_name = experiment_args.penalisation_class_name,
@@ -179,8 +175,7 @@ def main() -> None:
         loader= test_loader, 
         dataset = test_dataset, 
         prompt_config = prompt_config,
-        device_map=device_map,
-        generation_kwargs=generation_kwargs
+        device_map=device_map
     )
 
 if __name__ == "__main__":
