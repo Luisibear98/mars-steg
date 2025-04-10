@@ -345,7 +345,7 @@ def get_model(
         return Llama_32_1B_Instruct(model_config=model_config, tokenizer=tokenizer, output_delimitation_tokens=output_delimitation_tokens, generation_config=generation_config, device=device, precision_override=precision_override)
     elif model_name == 'deepseek-ai/DeepSeek-R1-Distill-Qwen-1.5B':
         return DeepSeek_R1_1pt5B(model_config=model_config, tokenizer=tokenizer, output_delimitation_tokens=output_delimitation_tokens, generation_config=generation_config, device=device, precision_override=precision_override)
-    elif "deepseek-ai" in model_name:
+    elif "deepseek-ai" in model_name or "GenPRM/GenPRM-7B" in model_name:
         return DeepSeek_R1_1pt5B(model_config=model_config, tokenizer=tokenizer, output_delimitation_tokens=output_delimitation_tokens, generation_config=generation_config, device=device, precision_override=precision_override)
 
 

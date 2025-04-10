@@ -442,8 +442,9 @@ class TrainConfig:
     adap_kl_ctrl: bool 
     lora_unload_measurement : bool 
     use_temporal_penalization : bool 
-    load_lora_from_local: bool
-    load_lora_from_local_path: str #Path to the lora model to load
+    load_lora_from_wandb: bool #Path to the lora model to load from wandb
+
+    load_lora_from_path_wandb: str #Path to the lora model to load from wandb
     penalisation_class_kwargs: dict
     t_weight: float
     l_weight: float

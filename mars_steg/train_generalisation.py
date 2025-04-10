@@ -71,17 +71,20 @@ def train(ppo_config, model_config, optimizer_config, train_config, generation_c
     generation_config.eos_token_id = tokenizer.eos_token_id 
     model = get_model(model_config, tokenizer, output_delimitation_tokens, generation_config, device_map["main_model"])
     
-    if train_config.load_lora_from_local:
-        print(f"LOADING LORA WEIGHTS FROM {train_config.load_lora_from_local_path}")
+    if train_config.load_lora_from_wandb:
+        print(f"LOADING LORA WEIGHTS FROM {train_config.load_lora_from_path_wandb}")
         from peft import PeftModel
-        load_path = train_config.load_lora_from_local_path
+        artifact = wandb.use_artifact(train_config.load_lora_from_path_wandb, type='model')
+        artifact_dir = artifact.download()
+        print(f"Artifact downloaded to {artifact_dir}")
+
         model.model.pretrained_model.base_model.model = PeftModel.from_pretrained(
             model.model.pretrained_model.base_model.model,
-            load_path
+            artifact_dir
         )
         
         # Pick these up from wandb artifact! - TODO with Luis!
-        test_nouns = ...
+        #test_nouns = ...
 
     else:
         test_nouns = None
@@ -130,6 +133,7 @@ def train(ppo_config, model_config, optimizer_config, train_config, generation_c
     assert isinstance(train_dataset.language_aspect, ToMTokenBanTask), \
         "train_generalisation.py is intended to only be used for the LanaguageAspect subclass ToMTokenBanTask"
 
+    wandb_run = wandb.run
 
     for epoch in range(train_config.num_train_epochs):
 
@@ -315,11 +319,14 @@ def train(ppo_config, model_config, optimizer_config, train_config, generation_c
                 if "cuda" in device_map["main_model"]:
                     torch.cuda.empty_cache() 
 
-                if batch_ticker % train_config.save_frequency == 0: 
+
+                print(batch_ticker % train_config.save_frequency)
+                if batch_ticker % 2 == 0:
                     if ppo_trainer.accelerator.is_main_process:
                         save_path = f"experiment_lora_cache"
+                        run_name = f"{run_wandb.id}"
                         ppo_trainer.model.pretrained_model.save_pretrained(save_path)
-                        artifact = wandb.Artifact(name=f"model_at_epoch_{epoch}_step_{batch_ticker}", type="model")
+                        artifact = wandb.Artifact(name=f"{run_name}_model_{epoch}_step_{batch_ticker}", type=f"model")
                         artifact.add_dir(save_path)  # Adds the entire folder
                         wandb.log_artifact(artifact)
 
