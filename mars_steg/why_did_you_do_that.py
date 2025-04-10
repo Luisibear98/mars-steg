@@ -175,7 +175,6 @@ def main() -> None:
         loader= test_loader, 
         dataset = test_dataset, 
         prompt_config = prompt_config,
-        device_map=device_map
     )
 
 if __name__ == "__main__":
