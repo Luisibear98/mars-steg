@@ -81,7 +81,7 @@ def run_inference(num_trials: int,
                 inputs: Dict[str: torch.TensorType] = {key: tensor.to(device_map["main_model"]) for key, tensor in inputs.items()}
                 
                 # Generate the with-CoT transcript (no-CoT transcript not needed during training)
-                transcript_responses = model.full_generate(inputs, **generation_kwargs)
+                transcript_responses = model.full_generate(inputs, generation_kwargs)
                 decoded_responses = [tokenizer.decode(r.squeeze()) for r in transcript_responses]
                 
                 # extraction of answer and cot (because cot_mode = True) parts of the transcript
