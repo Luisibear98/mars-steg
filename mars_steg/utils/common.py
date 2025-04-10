@@ -117,9 +117,7 @@ def get_dataloaders_and_ref_model(
     Create the reference model if `override_create_ref_model` is True
     or if the neural overseer or task requires it
 
-
     """
-
 
     dataset_class_kwargs = dataset_class_kwargs or dict()
     penalisation_class_kwargs = penalisation_class_kwargs or dict()

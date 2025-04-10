@@ -3,5 +3,8 @@ penalisation_class_name: CoTLengthPenalisation
 dataset_class_kwargs: 
   dataset: mars_steg/dataset/theory_of_mind.csv
   uses_local_neural_assessor: false
-penalisation_class_kwargs:
-  max_new_tokens_threshold: 900
+
+
+# 10.04.2025 - MOVED TO TRAIN CONFIG!
+# penalisation_class_kwargs:
+#   max_new_tokens_threshold: 900

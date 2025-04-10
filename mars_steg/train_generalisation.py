@@ -50,7 +50,6 @@ from mars_steg.utils.common import (
 
 from mars_steg.utils.answer_extraction import extract_cots
 
-from peft import PeftModel, PeftConfig
 
 def train(ppo_config, model_config, optimizer_config, train_config, generation_config, experiment_args, prompt_config, device_map):
 
@@ -100,7 +99,7 @@ def train(ppo_config, model_config, optimizer_config, train_config, generation_c
         penalisation_class_name = experiment_args.penalisation_class_name,
         prompt_config = prompt_config,
         dataset_class_kwargs = experiment_args.dataset_class_kwargs,
-        penalisation_class_kwargs = experiment_args.penalisation_class_kwargs,
+        penalisation_class_kwargs = train_config.penalisation_class_kwargs,
         train_proportion = train_config.train_proportion,
         validation_proportion = train_config.validation_proportion,
         batch_size = train_config.batch_size,
@@ -144,10 +143,10 @@ def train(ppo_config, model_config, optimizer_config, train_config, generation_c
         )
 
         batch_ticker = 0
-        computed_steps = 0 # To keep track of steps
         overall_extracted = 0
         overall_failed = 0
-        if not train_config.test_only:
+
+        if not experiment_args.test_only:
             for batch_prompt_datas in tqdm(train_loader):
 
                 batch_prompt_datas: BatchPromptData
@@ -316,14 +315,11 @@ def train(ppo_config, model_config, optimizer_config, train_config, generation_c
                 if "cuda" in device_map["main_model"]:
                     torch.cuda.empty_cache() 
 
-                # Save the model every 'save_frequency' batches.
-                computed_steps += len(composite_reward_list)
-
-                if computed_steps % train_config.save_frequency == 0: 
+                if batch_ticker % train_config.save_frequency == 0: 
                     if ppo_trainer.accelerator.is_main_process:
                         save_path = f"experiment_lora_cache"
                         ppo_trainer.model.pretrained_model.save_pretrained(save_path)
-                        artifact = wandb.Artifact(name=f"model_at_step_{str(computed_steps)}", type="model")
+                        artifact = wandb.Artifact(name=f"model_at_epoch_{epoch}_step_{batch_ticker}", type="model")
                         artifact.add_dir(save_path)  # Adds the entire folder
                         wandb.log_artifact(artifact)
 

@@ -1,5 +1,12 @@
 Train:
+  
   train_proportion: 0.7  # The proportion of names in the training data
   validation_proportion: 0.00  # fails otherwise
   t_weight: 1.0
   l_weight: 1.0
+
+  penalisation_class_kwargs:
+    max_new_tokens_threshold: 900
+    nouns_path: mars_steg/dataset/theory_of_mind_nouns.yaml
+    nouns_penalisation_type: names
+    temporal_reward_penalisation_offset: 0.1

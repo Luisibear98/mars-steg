@@ -1,4 +1,4 @@
-test_only: false
+test_only: true
 dataset_class_name: TheoryOfMindTask
 penalisation_class_name: ToMTokenBanTask
 dataset_class_kwargs: 

@@ -327,7 +327,7 @@ class ExperimentArgs:
     dataset_class_name: str
     penalisation_class_name: str
     dataset_class_kwargs: Dict
-    penalisation_class_kwargs: Dict
+    test_only: bool
 
     @classmethod
     def from_yaml(cls, yaml_file: str) -> ExperimentArgs:
@@ -404,9 +404,10 @@ class TrainConfig:
         whether to use the lora unloading measurement
     use_temporal_penalization : bool 
         whether to use the temporal reward 
-    test_only : bool 
-        whether you want to test only the model
-
+    penalisation_class_kwargs: dict
+        custom kwargs for the particular penalisation function being used
+    t_weight, l_weight: float
+        weightings for the task and language loss components. Linear for temporal penalisation, harmonic for non-temporal
 
     Notes
     -----
@@ -441,14 +442,13 @@ class TrainConfig:
     adap_kl_ctrl: bool 
     lora_unload_measurement : bool 
     use_temporal_penalization : bool 
-    test_only : bool 
     load_lora_from_local: bool
     load_lora_from_local_path: str #Path to the lora model to load
-
-
-
+    penalisation_class_kwargs: dict
     t_weight: float
     l_weight: float
+
+
 
 @dataclass
 class GenerationConfig:
