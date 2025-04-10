@@ -90,8 +90,7 @@ def run_inference(num_trials: int,
                     for i in range(len(decoded_responses))
                 ]
 
-                decoded_responses = model.full_generate(batch_messages, is_neural_assessor=False, is_neural_overseer= False)
-
+                decoded_responses = model.full_generate(batch_messages, is_neural_assessor=False, is_neural_overseer= False, do_transform_conversations=False)
                 
                 # extraction of answer and cot (because cot_mode = True) parts of the transcript
                 batch_prompt_datas.cot_transcripts = decoded_responses
