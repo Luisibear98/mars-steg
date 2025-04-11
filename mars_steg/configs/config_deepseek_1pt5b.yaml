@@ -45,6 +45,7 @@ Train:
   test_only: False #Wheter to run the test only
   load_lora_from_wandb: False
   load_lora_from_wandb_path: "./trained_models/model_at_step_9000/" #Path to the lora model to load
+  penalisation_class_kwargs: {}
 
 
 Generation:
