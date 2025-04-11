@@ -753,6 +753,8 @@ class PPOTrainer(BaseTrainer):
         )
         scores = torch.tensor(scores, device=self.current_device)
 
+        print(self.is_peft_model)
+
         # Optionally scale or clip scores.
         if self.config.use_score_scaling:
             scores_mean, scores_std = self.running.update(scores)
