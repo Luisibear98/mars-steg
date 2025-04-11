@@ -70,11 +70,12 @@ def train(ppo_config, model_config, optimizer_config, train_config, generation_c
     #TODO Resolve the problem of the model looping on final answer
     generation_config.eos_token_id = tokenizer.eos_token_id 
     model = get_model(model_config, tokenizer, output_delimitation_tokens, generation_config, device_map["main_model"])
-    
+    wandb_run = wandb.run
     if train_config.load_lora_from_wandb:
         print(f"LOADING LORA WEIGHTS FROM {train_config.load_lora_from_path_wandb}")
         from peft import PeftModel
-        artifact = wandb.use_artifact(train_config.load_lora_from_path_wandb, type='model')
+        load_dir_wandb = f"{wandb_run.entity}/{wandb_run.project}/{train_config.load_lora_from_path_wandb}:latest"
+        artifact = wandb.use_artifact(load_dir_wandb, type='model')
         artifact_dir = artifact.download()
         print(f"Artifact downloaded to {artifact_dir}")
 
@@ -85,7 +86,7 @@ def train(ppo_config, model_config, optimizer_config, train_config, generation_c
         
         # Pick these up from wandb artifact! - TODO with Luis!
         #test_nouns = ...
-
+        test_nouns = None
     else:
         test_nouns = None
 
@@ -135,7 +136,7 @@ def train(ppo_config, model_config, optimizer_config, train_config, generation_c
     assert isinstance(train_dataset.language_aspect, ToMTokenBanTask), \
         "train_generalisation.py is intended to only be used for the LanaguageAspect subclass ToMTokenBanTask"
 
-    wandb_run = wandb.run
+    
 
     for epoch in range(train_config.num_train_epochs):
 
@@ -321,12 +322,12 @@ def train(ppo_config, model_config, optimizer_config, train_config, generation_c
                 if "cuda" in device_map["main_model"]:
                     torch.cuda.empty_cache() 
 
-
-                print(batch_ticker % train_config.save_frequency)
                 if batch_ticker % train_config.save_frequency == 0:
                     if ppo_trainer.accelerator.is_main_process:
                         save_path = f"experiment_lora_cache"
-                        run_name = f"{run_wandb.id}"
+                        run_name = f"{wandb_run.name}"
+                        
+                        print(f"Pushing lora weights to wandb: {run_name}_model_{epoch}_step_{batch_ticker}")
                         ppo_trainer.model.pretrained_model.save_pretrained(save_path)
                         artifact = wandb.Artifact(name=f"{run_name}_model_{epoch}_step_{batch_ticker}", type=f"model")
                         artifact.add_dir(save_path)  # Adds the entire folder
