@@ -5,6 +5,3 @@ dataset_class_kwargs:
   dataset: mars_steg/dataset/theory_of_mind.csv
   nouns_path: mars_steg/dataset/theory_of_mind_nouns.yaml
   uses_local_neural_assessor: false
-Train:
-  load_lora_from_wandb: "./experiment_lora_cache" #Path to the lora model to load
-  

@@ -325,7 +325,7 @@ def train(ppo_config, model_config, optimizer_config, train_config, generation_c
                 if "cuda" in device_map["main_model"]:
                     torch.cuda.empty_cache() 
 
-                if batch_ticker % train_config.save_frequency == 0:
+                if (batch_ticker + 1) % train_config.save_frequency == 0:
                     if ppo_trainer.accelerator.is_main_process:
                         save_path = f"experiment_lora_cache"
                         
@@ -340,15 +340,9 @@ def train(ppo_config, model_config, optimizer_config, train_config, generation_c
                         ppo_trainer.model.pretrained_model.save_pretrained(save_path)
                         artifact = wandb.Artifact(name=f"{run_name}_model_{epoch}_step_{batch_ticker}", type=f"model")
                         artifact.add_dir(save_path)  # Adds the entire folder
-                        wandb.log_artifact(artifact)
-                    
-                        
-                        
+                        wandb.log_artifact(artifact)                        
 
                 batch_ticker += 1
-
-
-    
 
         print(f'BEGINING TESTING EPOCH {epoch}\n\n')
 
