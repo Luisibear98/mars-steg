@@ -24,7 +24,7 @@ Train:
   seed: 42  # The seed for reproducibility
   num_train_epochs: 10  # The number of training epochs
   num_eval_episodes: 10  # The number of evaluation episodes
-  save_frequency: 100  # The frequency to save the model relative to the number of training data batches
+  save_frequency: 50  # The frequency to save the model relative to the number of training data batches
   ppo_epochs: 1  # The number of PPO epochs
   train_proportion : 0.95  # The proportion of the training data
   validation_proportion : 0.05  # The proportion of the validation data (out of left data after training data split)
@@ -42,8 +42,6 @@ Train:
   adap_kl_ctrl: True # wheter to use a constant or adaptative KL control
   lora_unload_measurement : False # wheter to use the lora unloading measurement
   use_temporal_penalization: True #Wheter to use local penalization on unwanted tokens
-  load_lora_from_wandb: False
-  load_lora_from_path_wandb: "./experiment_lora_cache" #Path to the lora model to load
   penalisation_class_kwargs: {}
 
 Generation:

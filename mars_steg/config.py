@@ -328,6 +328,8 @@ class ExperimentArgs:
     penalisation_class_name: str
     dataset_class_kwargs: Dict
     test_only: bool
+    load_lora_from_wandb: bool = False
+    load_lora_from_path_wandb: Optional[str] = ""
 
     @classmethod
     def from_yaml(cls, yaml_file: str) -> ExperimentArgs:
@@ -442,9 +444,6 @@ class TrainConfig:
     adap_kl_ctrl: bool 
     lora_unload_measurement : bool 
     use_temporal_penalization : bool 
-    load_lora_from_wandb: bool #Path to the lora model to load from wandb
-
-    load_lora_from_path_wandb: str #Path to the lora model to load from wandb
     penalisation_class_kwargs: dict
     t_weight: float
     l_weight: float

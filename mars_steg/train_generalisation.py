@@ -73,10 +73,10 @@ def train(ppo_config, model_config, optimizer_config, train_config, generation_c
     
     wandb_run = wandb.run
     
-    if train_config.load_lora_from_wandb:
-        print(f"LOADING LORA WEIGHTS FROM {train_config.load_lora_from_path_wandb}")
+    if experiment_args.load_lora_from_wandb:
+        print(f"LOADING LORA WEIGHTS FROM {experiment_args.load_lora_from_path_wandb}")
         
-        load_dir_wandb = f"{wandb_run.entity}/{wandb_run.project}/{train_config.load_lora_from_path_wandb}:latest"
+        load_dir_wandb = f"{wandb_run.entity}/{wandb_run.project}/{experiment_args.load_lora_from_path_wandb}:latest"
         artifact = wandb.use_artifact(load_dir_wandb, type='model')
         artifact_dir = artifact.download()
         print(f"Artifact downloaded to {artifact_dir}")
@@ -130,8 +130,6 @@ def train(ppo_config, model_config, optimizer_config, train_config, generation_c
 
     print(ppo_trainer.ref_model)
 
-
-    #model.model.pretrained_model.load_adapter(train_config.load_lora_from_local_path,adapter_name="lora")
 
     assert train_config.number_of_evaluations == 0, \
         "train_generalisation.py is intended for train_config.number_of_evaluations == 0, it will automatically evaluate at the end of each epoch"
@@ -304,7 +302,6 @@ def train(ppo_config, model_config, optimizer_config, train_config, generation_c
                     ppo_trainer.config.backward_batch_size = train_config.batch_size
 
                 # Log stats to wandb.
-                # import pdb; pdb.set_trace(header = "2025.02.25: associate this with a epoch and batch ticker")
                 wandb.log(stats)            
                 epsilon = 1e-8  # Small value to prevent division by zero
 
@@ -325,7 +322,7 @@ def train(ppo_config, model_config, optimizer_config, train_config, generation_c
                 if "cuda" in device_map["main_model"]:
                     torch.cuda.empty_cache() 
 
-                if (batch_ticker + 1) % train_config.save_frequency == 0:
+                if batch_ticker % train_config.save_frequency == 0:
                     if ppo_trainer.accelerator.is_main_process:
                         save_path = f"experiment_lora_cache"
                         
@@ -349,7 +346,9 @@ def train(ppo_config, model_config, optimizer_config, train_config, generation_c
         test_batch_ticker = 0
         test_overall_extracted = 0
         test_overall_failed = 0
+
         with torch.no_grad():
+
             # START EVALUATION
             for test_batch_prompt_datas in tqdm(test_loader):
 
