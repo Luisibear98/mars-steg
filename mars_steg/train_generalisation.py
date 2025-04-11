@@ -50,7 +50,6 @@ from mars_steg.utils.common import (
 
 from mars_steg.utils.answer_extraction import extract_cots
 
-from peft import PeftModel, PeftConfig
 
 def train(ppo_config, model_config, optimizer_config, train_config, generation_config, experiment_args, prompt_config, device_map):
 
@@ -72,15 +71,24 @@ def train(ppo_config, model_config, optimizer_config, train_config, generation_c
     generation_config.eos_token_id = tokenizer.eos_token_id 
     model = get_model(model_config, tokenizer, output_delimitation_tokens, generation_config, device_map["main_model"])
     
-    if train_config.load_lora_from_local:
-        print(f"LOADING LORA WEIGHTS FROM LOCAL {train_config.load_lora_from_local_path}")
+    if train_config.load_lora_from_wandb:
+        print(f"LOADING LORA WEIGHTS FROM {train_config.load_lora_from_path_wandb}")
         from peft import PeftModel
-        load_path = train_config.load_lora_from_local_path
+        artifact = wandb.use_artifact(train_config.load_lora_from_path_wandb, type='model')
+        artifact_dir = artifact.download()
+        print(f"Artifact downloaded to {artifact_dir}")
+
         model.model.pretrained_model.base_model.model = PeftModel.from_pretrained(
-        model.model.pretrained_model.base_model.model,
-        load_path
+            model.model.pretrained_model.base_model.model,
+            artifact_dir
         )
-   
+        
+        # Pick these up from wandb artifact! - TODO with Luis!
+        #test_nouns = ...
+
+    else:
+        test_nouns = None
+
 
     optimizer = get_optimizer(optimizer_config=optimizer_config, model=model.model)
 
@@ -94,14 +102,17 @@ def train(ppo_config, model_config, optimizer_config, train_config, generation_c
         penalisation_class_name = experiment_args.penalisation_class_name,
         prompt_config = prompt_config,
         dataset_class_kwargs = experiment_args.dataset_class_kwargs,
-        penalisation_class_kwargs = experiment_args.penalisation_class_kwargs,
+        penalisation_class_kwargs = train_config.penalisation_class_kwargs,
         train_proportion = train_config.train_proportion,
         validation_proportion = train_config.validation_proportion,
         batch_size = train_config.batch_size,
         training_model = model,
         override_create_ref_model = train_config.create_ref_model,
         number_shared_layers_for_ref_model = train_config.number_shared_layers_for_ref_model,
-        test_train_split_kwargs={'mode': 'unseen_name'},
+        test_train_split_kwargs={
+            'mode': 'unseen_nouns',
+            'test_nouns': test_nouns,
+        },
         device_map=device_map
     )
 
@@ -112,20 +123,17 @@ def train(ppo_config, model_config, optimizer_config, train_config, generation_c
         tokenizer=tokenizer,
         optimizer=optimizer,
     )
-    
-
-
 
 
     #model.model.pretrained_model.load_adapter(train_config.load_lora_from_local_path,adapter_name="lora")
-
 
     assert train_config.number_of_evaluations == 0, \
         "train_generalisation.py is intended for train_config.number_of_evaluations == 0, it will automatically evaluate at the end of each epoch"
 
     assert isinstance(train_dataset.language_aspect, ToMTokenBanTask), \
-        "train_generalisation.py is intended to only be used for the LanaguageAspect subclass ToMTokenBanTask"
+        "train_generalisation.py is intended to only be used for the LanguageAspect subclass ToMTokenBanTask"
 
+    wandb_run = wandb.run
 
     for epoch in range(train_config.num_train_epochs):
 
@@ -139,10 +147,10 @@ def train(ppo_config, model_config, optimizer_config, train_config, generation_c
         )
 
         batch_ticker = 0
-        computed_steps = 0 # To keep track of steps
         overall_extracted = 0
         overall_failed = 0
-        if not train_config.test_only:
+
+        if not experiment_args.test_only:
             for batch_prompt_datas in tqdm(train_loader):
 
                 batch_prompt_datas: BatchPromptData
@@ -311,14 +319,14 @@ def train(ppo_config, model_config, optimizer_config, train_config, generation_c
                 if "cuda" in device_map["main_model"]:
                     torch.cuda.empty_cache() 
 
-                # Save the model every 'save_frequency' batches.
-                computed_steps += len(composite_reward_list)
 
-                if computed_steps % train_config.save_frequency == 0: 
+                print(batch_ticker % train_config.save_frequency)
+                if batch_ticker % train_config.save_frequency == 0:
                     if ppo_trainer.accelerator.is_main_process:
                         save_path = f"experiment_lora_cache"
+                        run_name = f"{run_wandb.id}"
                         ppo_trainer.model.pretrained_model.save_pretrained(save_path)
-                        artifact = wandb.Artifact(name=f"model_at_step_{str(computed_steps)}", type="model")
+                        artifact = wandb.Artifact(name=f"{run_name}_model_{epoch}_step_{batch_ticker}", type=f"model")
                         artifact.add_dir(save_path)  # Adds the entire folder
                         wandb.log_artifact(artifact)
 

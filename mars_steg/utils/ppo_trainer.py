@@ -701,6 +701,8 @@ class PPOTrainer(BaseTrainer):
             `tuple`: The input processed data.
         """
         for name, tensor_list in zip(["queries", "responses", "scores", "penalization_tensors"], [queries, responses, scores, penalization_tensors]):
+            if name == "penalization_tensors" and penalization_tensors is None:
+                warnings.warn("no penalization_tensors has been given, you might think of stopping the experiment if you were considering having one")
             if not isinstance(tensor_list, list):
                 raise ValueError(f"{name} must be a list of tensors - got {type(tensor_list)}")
             if not isinstance(tensor_list[0], torch.Tensor):
@@ -1256,8 +1258,11 @@ class PPOTrainer(BaseTrainer):
             # compute KL penalty (from difference in logprobs)
             kl = self._kl_penalty(logprob, ref_logprob)
             kls.append(kl)
-            penalization_tensor = F.pad(penalization_tensor, (0, len(kl) - len(penalization_tensor)), "constant", 0.0)
-            non_score_reward = - self.kl_ctl.value * kl - penalization_tensor.to(torch.bfloat16)
+            if penalization_tensors:
+                penalization_tensor = F.pad(penalization_tensor, (0, len(kl) - len(penalization_tensor)), "constant", 0.0)
+                non_score_reward = - self.kl_ctl.value * kl - penalization_tensor.to(torch.bfloat16)
+            else:
+                non_score_reward = - self.kl_ctl.value * kl
             non_score_rewards.append(non_score_reward)
             reward = non_score_reward.clone()
             last_non_masked_index = mask.nonzero()[-1]
