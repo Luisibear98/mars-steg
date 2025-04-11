@@ -474,8 +474,8 @@ class TrainConfig:
     lora_unload_measurement : bool 
     use_temporal_penalization : bool 
     test_only : bool 
-    load_lora_from_local: bool
-    load_lora_from_local_path: str #Path to the lora model to load
+    load_lora_from_wandb: bool
+    load_lora_from_wandb_path: str #Path to the lora model to load
 
 
 
