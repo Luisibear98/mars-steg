@@ -1,18 +1,18 @@
 Train:
-  train_proportion: 0.7  # The proportion of names in the training data
+  train_proportion: 0.5  # The proportion of names in the training data
   validation_proportion: 0.00  # fails otherwise
   t_weight: 1.0
-  l_weight: 1.0
+  l_weight: 2.0
 
   penalisation_class_kwargs:
     max_new_tokens_threshold: 900
     nouns_path: mars_steg/dataset/theory_of_mind_nouns.yaml
     nouns_penalisation_type: names
-    temporal_reward_penalisation_offset: 0.1
+    temporal_reward_penalisation_offset: 0.022
 
 Optimizer:
   optimizer_name: "adam"
-  learning_rate: 5.0e-5
+  learning_rate: 1.0e-5
   weight_decay: 0.01
   adam_epsilon: 1.0e-8
   warmup_steps: 500
