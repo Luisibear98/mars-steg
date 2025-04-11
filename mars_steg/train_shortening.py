@@ -84,7 +84,7 @@ def train(ppo_config, model_config, optimizer_config, train_config, generation_c
         penalisation_class_name = experiment_args.penalisation_class_name,
         prompt_config = prompt_config,
         dataset_class_kwargs = experiment_args.dataset_class_kwargs,
-        penalisation_class_kwargs = experiment_args.penalisation_class_kwargs,
+        penalisation_class_kwargs = train_config.penalisation_class_kwargs,
         train_proportion = train_config.train_proportion,
         validation_proportion = train_config.validation_proportion,
         batch_size = train_config.batch_size,
