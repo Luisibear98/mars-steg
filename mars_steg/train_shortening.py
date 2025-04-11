@@ -224,7 +224,7 @@ def train(ppo_config, model_config, optimizer_config, train_config, generation_c
                 print("All examples parsed successfully")
 
             # Extract rewards
-            composite_reward_list, task_score_list, language_score_list, train_query_tensors, train_transcript_responses = \
+            composite_reward_list, task_score_list, language_score_list, train_query_tensors, train_transcript_responses, _, _, _, _ = \
             get_rewards_and_training_datas(
                 batch_prompt_datas=extracted_batch_prompt_datas,
                 query_tensors=query_tensors,
@@ -237,7 +237,7 @@ def train(ppo_config, model_config, optimizer_config, train_config, generation_c
 
             if train_config.lora_unload_measurement:
 
-                composite_reward_list_no_lora, task_score_list_no_lora, language_score_list_no_lora, _, _ = \
+                composite_reward_list_no_lora, task_score_list_no_lora, language_score_list_no_lora, _, _, _, _, _, _  = \
                 get_rewards_and_training_datas(
                     batch_prompt_datas=extracted_batch_prompt_datas_no_lora,
                     query_tensors=query_tensors_no_lora,
@@ -334,18 +334,14 @@ def train(ppo_config, model_config, optimizer_config, train_config, generation_c
             # Clear CUDA cache if needed.
             if "cuda" in device_map["main_model"]:
                 torch.cuda.empty_cache() 
-   
-        
-    
-            
+
             # Save the model every 'save_frequency' batches.
             print(batch_ticker % train_config.save_frequency)
-            if batch_ticker % 2 == 0:
+            if batch_ticker % train_config.save_frequency == 0:
                 if ppo_trainer.accelerator.is_main_process:
                     save_path = f"experiment_lora_cache"
-                    run_name = f"{run_wandb.id}"
                     ppo_trainer.model.pretrained_model.save_pretrained(save_path)
-                    artifact = wandb.Artifact(name=f"{run_name}_model_{epoch}_step_{batch_ticker}", type=f"model_lora_weights_run_{run_name}")
+                    artifact = wandb.Artifact(name=f"model_{batch_ticker}", type="model")
                     artifact.add_dir(save_path)  # Adds the entire folder
                     wandb.log_artifact(artifact)
 
