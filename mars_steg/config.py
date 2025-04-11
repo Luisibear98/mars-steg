@@ -476,6 +476,7 @@ class TrainConfig:
     test_only : bool 
     load_lora_from_wandb: bool
     load_lora_from_wandb_path: str #Path to the lora model to load
+    penalisation_class_kwargs: dict
 
 
 
