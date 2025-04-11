@@ -703,6 +703,7 @@ class PPOTrainer(BaseTrainer):
         for name, tensor_list in zip(["queries", "responses", "scores", "penalization_tensors"], [queries, responses, scores, penalization_tensors]):
             if name == "penalization_tensors" and penalization_tensors is None:
                 warnings.warn("no penalization_tensors has been given, you might think of stopping the experiment if you were considering having one")
+                continue
             if not isinstance(tensor_list, list):
                 raise ValueError(f"{name} must be a list of tensors - got {type(tensor_list)}")
             if not isinstance(tensor_list[0], torch.Tensor):
