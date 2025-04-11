@@ -124,6 +124,8 @@ def train(ppo_config, model_config, optimizer_config, train_config, generation_c
         optimizer=optimizer,
     )
 
+    print(ppo_trainer.ref_model)
+
 
     #model.model.pretrained_model.load_adapter(train_config.load_lora_from_local_path,adapter_name="lora")
 
