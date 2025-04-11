@@ -24,8 +24,8 @@
   "revision": null,
   "target_modules": [
     "k_proj",
-    "q_proj",
     "v_proj",
+    "q_proj",
     "dense"
   ],
   "task_type": "CAUSAL_LM",

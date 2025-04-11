@@ -266,10 +266,12 @@ class TheoryOfMindTask(TorchDatasetTask):
         elif mode == 'unseen_nouns':
             assert validation_proportion == 0.0
 
+            # get list of names
+            names: List[str] = self.nouns['names']
+            
             if test_nouns is None:
             
-                # get list of names
-                names: List[str] = self.nouns['names']
+                
 
                 # count how many prompts contain each name
                 name_counts = {}
@@ -320,6 +322,7 @@ class TheoryOfMindTask(TorchDatasetTask):
 
             else:
                 test_names = test_nouns
+        
         
             # Remaining names go to train set
             train_names: List[str] = [name for name in names if name not in test_names]

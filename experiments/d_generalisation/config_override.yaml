@@ -3,6 +3,8 @@ Train:
   validation_proportion: 0.00  # fails otherwise
   t_weight: 1.0
   l_weight: 1.0
+  load_lora_from_wandb: False #Wether to load the lora model from wandb
+  load_lora_from_path_wandb: "" #Path to the lora model to load
 
   penalisation_class_kwargs:
     max_new_tokens_threshold: 900
