@@ -101,7 +101,6 @@ class BaseModel(metaclass=ABCMeta):
         precision_override: Optional[str]
             Override precision in specific case (problem in duplicating from ref model when quantized)
         """
-
         self.model_config = model_config
         self.model_name = model_config.model_name
         self.tokenizer = tokenizer

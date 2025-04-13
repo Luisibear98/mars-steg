@@ -405,7 +405,7 @@ def train(ppo_config, model_config, optimizer_config, train_config, generation_c
                         batch_prompt_datas=extracted_test_batch_prompt_datas,
                         query_tensors=query_tensors,
                         transcript_responses=transcript_responses, 
-                        train_dataset=train_dataset,
+                        train_dataset=test_dataset,
                         skipping_failed_parsing_examples = train_config.skipping_failed_parsing_examples,
                         t_weight=train_config.t_weight,
                         l_weight=train_config.l_weight,
@@ -417,7 +417,7 @@ def train(ppo_config, model_config, optimizer_config, train_config, generation_c
                         batch_prompt_datas=extracted_test_batch_prompt_datas,
                         query_tensors=query_tensors,
                         transcript_responses=transcript_responses, 
-                        train_dataset=train_dataset,
+                        train_dataset=test_dataset,
                         skipping_failed_parsing_examples = train_config.skipping_failed_parsing_examples,
                         t_weight=train_config.t_weight,
                         l_weight=train_config.l_weight
