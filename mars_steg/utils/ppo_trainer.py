@@ -701,6 +701,9 @@ class PPOTrainer(BaseTrainer):
             `tuple`: The input processed data.
         """
         for name, tensor_list in zip(["queries", "responses", "scores", "penalization_tensors"], [queries, responses, scores, penalization_tensors]):
+            if name == "penalization_tensors" and penalization_tensors is None:
+                warnings.warn("no penalization_tensors has been given, you might think of stopping the experiment if you were considering having one")
+                continue
             if not isinstance(tensor_list, list):
                 raise ValueError(f"{name} must be a list of tensors - got {type(tensor_list)}")
             if not isinstance(tensor_list[0], torch.Tensor):
@@ -752,6 +755,8 @@ class PPOTrainer(BaseTrainer):
             bs, queries, responses, scores, response_masks, penalization_tensors
         )
         scores = torch.tensor(scores, device=self.current_device)
+
+        print(self.is_peft_model)
 
         # Optionally scale or clip scores.
         if self.config.use_score_scaling:
@@ -1252,19 +1257,35 @@ class PPOTrainer(BaseTrainer):
         """
         rewards, non_score_rewards, kls = [], [], []
 
-        for score, logprob, ref_logprob, mask, penalization_tensor in zip(scores, logprobs, ref_logprobs, masks, penalization_tensors):
+        if penalization_tensors:
+            for score, logprob, ref_logprob, mask, penalization_tensor in zip(scores, logprobs, ref_logprobs, masks, penalization_tensors):
             # compute KL penalty (from difference in logprobs)
-            kl = self._kl_penalty(logprob, ref_logprob)
-            kls.append(kl)
-            penalization_tensor = F.pad(penalization_tensor, (0, len(kl) - len(penalization_tensor)), "constant", 0.0)
-            non_score_reward = - self.kl_ctl.value * kl - penalization_tensor.to(torch.bfloat16)
-            non_score_rewards.append(non_score_reward)
-            reward = non_score_reward.clone()
-            last_non_masked_index = mask.nonzero()[-1]
+                kl = self._kl_penalty(logprob, ref_logprob)
+                kls.append(kl)
 
-            # reward is preference model score + KL penalty
-            reward[last_non_masked_index] += score
-            rewards.append(reward)
+                penalization_tensor = F.pad(penalization_tensor, (0, len(kl) - len(penalization_tensor)), "constant", 0.0)
+                non_score_reward = - self.kl_ctl.value * kl - penalization_tensor.to(torch.bfloat16)
+
+                non_score_rewards.append(non_score_reward)
+                reward = non_score_reward.clone()
+                last_non_masked_index = mask.nonzero()[-1]
+
+                # reward is preference model score + KL penalty
+                reward[last_non_masked_index] += score
+                rewards.append(reward)
+        else:
+            for score, logprob, ref_logprob, mask in zip(scores, logprobs, ref_logprobs, masks):
+            # compute KL penalty (from difference in logprobs)
+                kl = self._kl_penalty(logprob, ref_logprob)
+                kls.append(kl)
+                non_score_reward = - self.kl_ctl.value * kl 
+                non_score_rewards.append(non_score_reward)
+                reward = non_score_reward.clone()
+                last_non_masked_index = mask.nonzero()[-1]
+                # reward is preference model score + KL penalty
+                reward[last_non_masked_index] += score
+                rewards.append(reward)
+
         return torch.stack(rewards), torch.stack(non_score_rewards), torch.stack(kls)
 
     def _kl_penalty(self, logprob: torch.FloatTensor, ref_logprob: torch.FloatTensor) -> torch.FloatTensor:

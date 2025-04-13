@@ -49,9 +49,7 @@ from mars_steg.utils.common import (
 )
 
 from mars_steg.utils.answer_extraction import extract_cots
-
 from peft import PeftModel
-
 
 def train(ppo_config, model_config, optimizer_config, train_config, generation_config, experiment_args, prompt_config, device_map):
 
@@ -73,17 +71,24 @@ def train(ppo_config, model_config, optimizer_config, train_config, generation_c
     generation_config.eos_token_id = tokenizer.eos_token_id 
     model = get_model(model_config, tokenizer, output_delimitation_tokens, generation_config, device_map["main_model"])
     
-    if train_config.load_lora_from_local:
-        print(f"LOADING LORA WEIGHTS FROM {train_config.load_lora_from_local_path}")
+    wandb_run = wandb.run
+    
+    if experiment_args.load_lora_from_wandb:
+        print(f"LOADING LORA WEIGHTS FROM {experiment_args.load_lora_from_path_wandb}")
         
-        load_path = train_config.load_lora_from_local_path
+        load_dir_wandb = f"{wandb_run.entity}/{wandb_run.project}/{experiment_args.load_lora_from_path_wandb}:latest"
+        artifact = wandb.use_artifact(load_dir_wandb, type='model')
+        artifact_dir = artifact.download()
+        print(f"Artifact downloaded to {artifact_dir}")
+        
+        with open(f'{artifact_dir}/test_names.txt', 'r') as f:
+            test_nouns = {line.strip() for line in f}
+
+        print(f"Loading test names: {test_nouns}")
         model.model.pretrained_model.base_model.model = PeftModel.from_pretrained(
             model.model.pretrained_model.base_model.model,
-            load_path
+            artifact_dir
         )
-        
-        # Pick these up from wandb artifact! - TODO with Luis!
-        test_nouns = ...
 
     else:
         test_nouns = None
@@ -123,8 +128,8 @@ def train(ppo_config, model_config, optimizer_config, train_config, generation_c
         optimizer=optimizer,
     )
 
+    print(ppo_trainer.ref_model)
 
-    #model.model.pretrained_model.load_adapter(train_config.load_lora_from_local_path,adapter_name="lora")
 
     assert train_config.number_of_evaluations == 0, \
         "train_generalisation.py is intended for train_config.number_of_evaluations == 0, it will automatically evaluate at the end of each epoch"
@@ -132,6 +137,7 @@ def train(ppo_config, model_config, optimizer_config, train_config, generation_c
     assert isinstance(train_dataset.language_aspect, ToMTokenBanTask), \
         "train_generalisation.py is intended to only be used for the LanaguageAspect subclass ToMTokenBanTask"
 
+    
 
     for epoch in range(train_config.num_train_epochs):
 
@@ -296,7 +302,6 @@ def train(ppo_config, model_config, optimizer_config, train_config, generation_c
                     ppo_trainer.config.backward_batch_size = train_config.batch_size
 
                 # Log stats to wandb.
-                # import pdb; pdb.set_trace(header = "2025.02.25: associate this with a epoch and batch ticker")
                 wandb.log(stats)            
                 epsilon = 1e-8  # Small value to prevent division by zero
 
@@ -317,25 +322,33 @@ def train(ppo_config, model_config, optimizer_config, train_config, generation_c
                 if "cuda" in device_map["main_model"]:
                     torch.cuda.empty_cache() 
 
-                if batch_ticker % train_config.save_frequency == 0: 
+                if batch_ticker % train_config.save_frequency == 0:
                     if ppo_trainer.accelerator.is_main_process:
                         save_path = f"experiment_lora_cache"
+                        
+                        test_names = test_dataset.language_aspect.penalise_substrings
+                        with open(f'{save_path}/test_names.txt', 'w') as f:
+                            for name in test_names:
+                                f.write(name + '\n')
+                        
+                        run_name = f"{wandb_run.name}"
+
+                        print(f"Pushing lora weights to wandb: {run_name}_model_{epoch}_step_{batch_ticker}")
                         ppo_trainer.model.pretrained_model.save_pretrained(save_path)
-                        artifact = wandb.Artifact(name=f"model_at_epoch_{epoch}_step_{batch_ticker}", type="model")
+                        artifact = wandb.Artifact(name=f"{run_name}_model_{epoch}_step_{batch_ticker}", type=f"model")
                         artifact.add_dir(save_path)  # Adds the entire folder
-                        wandb.log_artifact(artifact)
+                        wandb.log_artifact(artifact)                        
 
                 batch_ticker += 1
-
-
-    
 
         print(f'BEGINING TESTING EPOCH {epoch}\n\n')
 
         test_batch_ticker = 0
         test_overall_extracted = 0
         test_overall_failed = 0
+
         with torch.no_grad():
+
             # START EVALUATION
             for test_batch_prompt_datas in tqdm(test_loader):
 
@@ -392,7 +405,7 @@ def train(ppo_config, model_config, optimizer_config, train_config, generation_c
                         batch_prompt_datas=extracted_test_batch_prompt_datas,
                         query_tensors=query_tensors,
                         transcript_responses=transcript_responses, 
-                        train_dataset=train_dataset,
+                        train_dataset=test_dataset,
                         skipping_failed_parsing_examples = train_config.skipping_failed_parsing_examples,
                         t_weight=train_config.t_weight,
                         l_weight=train_config.l_weight,
@@ -404,7 +417,7 @@ def train(ppo_config, model_config, optimizer_config, train_config, generation_c
                         batch_prompt_datas=extracted_test_batch_prompt_datas,
                         query_tensors=query_tensors,
                         transcript_responses=transcript_responses, 
-                        train_dataset=train_dataset,
+                        train_dataset=test_dataset,
                         skipping_failed_parsing_examples = train_config.skipping_failed_parsing_examples,
                         t_weight=train_config.t_weight,
                         l_weight=train_config.l_weight

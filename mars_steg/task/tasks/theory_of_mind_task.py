@@ -266,11 +266,13 @@ class TheoryOfMindTask(TorchDatasetTask):
         elif mode == 'unseen_nouns':
             assert validation_proportion == 0.0
 
+            # get list of names
+            names: List[str] = self.nouns['names']
+            total_prompts = len(self.dataset)
+            target_test_proportion = 1.0 - train_proportion
+            
             if test_nouns is None:
             
-                # get list of names
-                names: List[str] = self.nouns['names']
-
                 # count how many prompts contain each name
                 name_counts = {}
                 for name in names:
@@ -279,7 +281,6 @@ class TheoryOfMindTask(TorchDatasetTask):
                     name_counts[name] = mask.sum()
                 
                 # Calculate proportion of prompts each name appears in
-                total_prompts = len(self.dataset)
                 name_proportion_of_prompts = {name: count / total_prompts for name, count in name_counts.items()}
                 
                 # Randomly shuffle names
@@ -289,7 +290,6 @@ class TheoryOfMindTask(TorchDatasetTask):
                 # Initialize test and train sets
                 test_names: List[str] = []
                 test_proportion_sum = 0.0
-                target_test_proportion = 1.0 - train_proportion
                 
                 # Randomized approach: keep adding randomly selected names until we reach the target proportion
                 for name in shuffled_names:

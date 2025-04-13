@@ -1,3 +1,5 @@
 Train:
   t_weight: 1.0
   l_weight: 3.0
+  penalisation_class_kwargs:
+    max_new_tokens_threshold: 900

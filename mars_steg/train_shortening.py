@@ -84,7 +84,7 @@ def train(ppo_config, model_config, optimizer_config, train_config, generation_c
         penalisation_class_name = experiment_args.penalisation_class_name,
         prompt_config = prompt_config,
         dataset_class_kwargs = experiment_args.dataset_class_kwargs,
-        penalisation_class_kwargs = experiment_args.penalisation_class_kwargs,
+        penalisation_class_kwargs = train_config.penalisation_class_kwargs,
         train_proportion = train_config.train_proportion,
         validation_proportion = train_config.validation_proportion,
         batch_size = train_config.batch_size,
@@ -224,7 +224,7 @@ def train(ppo_config, model_config, optimizer_config, train_config, generation_c
                 print("All examples parsed successfully")
 
             # Extract rewards
-            composite_reward_list, task_score_list, language_score_list, train_query_tensors, train_transcript_responses = \
+            composite_reward_list, task_score_list, language_score_list, train_query_tensors, train_transcript_responses, _, _, _, _ = \
             get_rewards_and_training_datas(
                 batch_prompt_datas=extracted_batch_prompt_datas,
                 query_tensors=query_tensors,
@@ -237,7 +237,7 @@ def train(ppo_config, model_config, optimizer_config, train_config, generation_c
 
             if train_config.lora_unload_measurement:
 
-                composite_reward_list_no_lora, task_score_list_no_lora, language_score_list_no_lora, _, _ = \
+                composite_reward_list_no_lora, task_score_list_no_lora, language_score_list_no_lora, _, _, _, _, _, _  = \
                 get_rewards_and_training_datas(
                     batch_prompt_datas=extracted_batch_prompt_datas_no_lora,
                     query_tensors=query_tensors_no_lora,

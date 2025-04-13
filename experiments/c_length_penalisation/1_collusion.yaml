@@ -1,8 +1,10 @@
+test_only: false
 dataset_class_name: SequentialPriceTask
 penalisation_class_name: CoTLengthPenalisation
 dataset_class_kwargs: 
   dataset: mars_steg/dataset/sequential_price_game.csv
   uses_local_neural_assessor: false
+   
 
 # 10.04.2025 - MOVED TO TRAIN CONFIG!
 # penalisation_class_kwargs:
