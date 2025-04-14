@@ -476,17 +476,6 @@ if __name__ == "__main__":
 
     device_map = get_device_map()
 
-
-    # seed = 16
-    # random.seed(seed)
-    # torch.manual_seed(seed)
-    # torch.cuda.manual_seed_all(seed)
-    # # Ensures deterministic behavior for cudnn
-    # torch.backends.cudnn.deterministic = True
-    # torch.backends.cudnn.benchmark = False
-    # os.environ["PYTHONHASHSEED"] = str(seed)
-
-
     ####################################################################################################################
     # GET CONFIGS 
     ####################################################################################################################
@@ -519,9 +508,14 @@ if __name__ == "__main__":
     ####################################################################################################################
     # SET UP WANDB LOGGING
     ####################################################################################################################
-
+    
+    if experiment_args.load_lora_from_wandb:
+        project_name = "MARS-STEGO TEST"
+    else:
+        project_name = "MARS-STEGO TRAIN"
+        
     wandb.init(
-        project="MARS-STEGO",
+        project=project_name,
         entity="luisoso",
         config={
             'ppo_config': ppo_config,
