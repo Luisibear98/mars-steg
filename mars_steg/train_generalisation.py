@@ -510,12 +510,12 @@ if __name__ == "__main__":
     ####################################################################################################################
     
     if experiment_args.load_lora_from_wandb:
-        project_names = "MARS-STEGO TEST"
+        project_name = "MARS-STEGO TEST"
     else:
-        project_names = "MARS-STEGO TRAIN"
+        project_name = "MARS-STEGO TRAIN"
         
     wandb.init(
-        project="MARS-STEGO",
+        project=project_name,
         entity="luisoso",
         config={
             'ppo_config': ppo_config,
