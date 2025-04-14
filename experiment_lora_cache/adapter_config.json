@@ -23,10 +23,10 @@
   "rank_pattern": {},
   "revision": null,
   "target_modules": [
-    "q_proj",
     "k_proj",
-    "v_proj",
-    "dense"
+    "q_proj",
+    "dense",
+    "v_proj"
   ],
   "task_type": "CAUSAL_LM",
   "use_dora": false,
