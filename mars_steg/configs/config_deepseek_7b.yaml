@@ -1,5 +1,5 @@
 Model:
-  model_name: "GenPRM/GenPRM-7B"  # The model name
+  model_name: "GenPRM/GenPRM-7B"  # The model name #"GenPRM/GenPRM-7B"  
   model_save_path: "./experiments/models"  # The path to save the model
   load_precision_mode: "4bits" # Options: ["4bits","8bits","full"]
   lora: true # false
@@ -54,7 +54,7 @@ Generation:
   #pad_token_id: 0
   bos_token_id: 151646
   eos_token_id: 151643
-  max_new_tokens: 700
+  max_new_tokens: 800
   return_prompt: False
   generate_ref_response: False
   use_cache : True

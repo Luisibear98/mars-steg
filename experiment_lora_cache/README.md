@@ -1,5 +1,5 @@
 ---
-base_model: GenPRM/GenPRM-7B
+base_model: deepseek-ai/DeepSeek-R1-Distill-Qwen-7B
 library_name: peft
 ---
 
