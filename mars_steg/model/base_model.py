@@ -290,11 +290,12 @@ class BaseModel(metaclass=ABCMeta):
             ]
         
         elif assistant_prompts is None:
+
             batch_messages = [
                 [
-                    self.get_message(
-                        "system", system_prompt
-                    ),  # {"role": "system", "content": system_prompt},
+                    #self.get_message(
+                    #    "system", system_prompt
+                    #), {"role": "system", "content": system_prompt},
                     self.get_message(
                         "user", user_prompt
                     ),  # {"role": "user", "content": user_prompt}
@@ -316,7 +317,6 @@ class BaseModel(metaclass=ABCMeta):
                 ]
                 for user_prompt, assistant_prompt in zip(user_prompts, assistant_prompts)
             ]
-
         return batch_messages
 
     def full_generate(self, 

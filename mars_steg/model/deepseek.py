@@ -42,7 +42,7 @@ class DeepSeek_R1_1pt5B(BaseModel):
             A dictionary containing the role and content of the message.
         """
         if "system" in user_string:
-            user_string = "assistant"
+            user_string = "user"
 
         return {"role": user_string, "content": f"{system_prompt}"}
     
