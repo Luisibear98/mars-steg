@@ -167,7 +167,6 @@ def train(ppo_config, model_config, optimizer_config, train_config, generation_c
                 transformed_batch_conversation = [model.transform_conversation(conversation, prompt_config.prompt_thinking_helper) for conversation in batch_messages]
 
                 inputs = model.tokenize(transformed_batch_conversation)
-                
                 # Move the tokenized inputs to the same device the model is on (GPU/CPU)
                 inputs = {key: tensor.to(device_map["main_model"]) for key, tensor in inputs.items()}
 
@@ -509,10 +508,10 @@ if __name__ == "__main__":
     # SET UP WANDB LOGGING
     ####################################################################################################################
     
-    if experiment_args.load_lora_from_wandb:
-        project_name = "MARS-STEGO TEST"
-    else:
+    if experiment_args.load_lora_from_wandb: #Should We pass the project name as a param?
         project_name = "MARS-STEGO TRAIN"
+    else:
+        project_name = "MARS-STEGO DEBUG"
         
     wandb.init(
         project=project_name,
