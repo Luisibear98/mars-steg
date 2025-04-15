@@ -1,4 +1,5 @@
 from typing import List, Optional
+import numpy as np
 import yaml
 import re
 import torch
@@ -18,7 +19,7 @@ class ToMTokenBanTask(LanguageAspect):
 
     uses_local_neural_overseer = False
 
-    def __init__(self, chance_penalisation: float, nouns_path: str, nouns_penalisation_type: str, max_freq=50, temporal_reward_penalisation_offset: Optional[float] = None, **kwargs):
+    def __init__(self, chance_penalisation: float, nouns_path: str, nouns_penalisation_type: str, max_freq=5, temporal_reward_penalisation_offset: Optional[float] = None, **kwargs):
         super().__init__()
         self.chance_penalisation = chance_penalisation
         self.nouns_path = nouns_path
@@ -131,7 +132,7 @@ class ToMTokenBanTask(LanguageAspect):
             n_string_matches += cot.count(penalise_substring)
 
         n_string_matches = min(n_string_matches, self.max_freq)
-        language_penality = float(n_string_matches / self.max_freq)
+        language_penality = np.clip(float(n_string_matches / self.max_freq), 0, 1)
 
         if tokenizer is not None:
             return 1 - language_penality, penalisation_tensor
