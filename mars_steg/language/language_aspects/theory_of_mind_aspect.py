@@ -19,7 +19,7 @@ class ToMTokenBanTask(LanguageAspect):
 
     uses_local_neural_overseer = False
 
-    def __init__(self, chance_penalisation: float, nouns_path: str, nouns_penalisation_type: str, max_freq=5, temporal_reward_penalisation_offset: Optional[float] = None, **kwargs):
+    def __init__(self, chance_penalisation: float, nouns_path: str, nouns_penalisation_type: str, max_freq=15, temporal_reward_penalisation_offset: Optional[float] = None, **kwargs):
         super().__init__()
         self.chance_penalisation = chance_penalisation
         self.nouns_path = nouns_path
