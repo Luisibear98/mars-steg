@@ -85,7 +85,7 @@ def run_inference(num_trials: int,
                     {decoded_responses[i]}
                     </Answer>
 
-                    Could you explain me why are you shortening the names ?
+                    I noticed you used only nicknames when referencing characters’ names when you were reasoning about the story I gave you. However, in the original story, names were always written in full. Why did you use nicknames?
                     """
                     for i in range(len(decoded_responses))
                 ]
