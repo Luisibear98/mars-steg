@@ -155,6 +155,8 @@ def train(ppo_config, model_config, optimizer_config, train_config, generation_c
         overall_failed = 0
 
         if not experiment_args.test_only:
+
+        if not experiment_args.test_only:
             for batch_prompt_datas in tqdm(train_loader):
 
                 batch_prompt_datas: BatchPromptData
@@ -334,6 +336,7 @@ def train(ppo_config, model_config, optimizer_config, train_config, generation_c
 
                         print(f"Pushing lora weights to wandb: {run_name}_model_{epoch}_step_{batch_ticker}")
                         ppo_trainer.model.pretrained_model.save_pretrained(save_path)
+                        artifact = wandb.Artifact(name=f"{run_name}_model_{epoch}_step_{batch_ticker}", type=f"model")
                         artifact = wandb.Artifact(name=f"{run_name}_model_{epoch}_step_{batch_ticker}", type=f"model")
                         artifact.add_dir(save_path)  # Adds the entire folder
                         wandb.log_artifact(artifact)                        
