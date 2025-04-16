@@ -14,8 +14,7 @@ Inference:
     seed: 42
     num_trials : 10
     is_peft_model: True
-    load_lora_from_local: True
-    lora_adaptaters_artefact_reference: 'luisoso/MARS-STEGO/model_at_step_600:v12'
+    load_lora_from_path_wandb: "rich-water-7_model_0_step_149"
 
 Generation:
   min_length: 0

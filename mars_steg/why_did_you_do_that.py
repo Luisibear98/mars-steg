@@ -159,18 +159,21 @@ def main() -> None:
     generation_config.eos_token_id = tokenizer.eos_token_id 
     model = get_model(model_config, tokenizer, output_delimitation_tokens, generation_config, device_map["main_model"])
 
-    # Format: "entity/project/artifact_name:version"
-    artifact_reference = inference_config.lora_adaptaters_artefact_reference
-    # Download the artifact
-    artifact = wandb.use_artifact(artifact_reference)
-    artifact_lora_adaptaters_path = artifact.download()
+    wandb_run = wandb.run
+    print(f"LOADING LORA WEIGHTS FROM {inference_config.load_lora_from_path_wandb}")
+    load_dir_wandb = f"{wandb_run.entity}/{wandb_run.project}/{inference_config.load_lora_from_path_wandb}:latest"
+    artifact = wandb.use_artifact(load_dir_wandb, type='model')
+    artifact_dir = artifact.download()
+    print(f"Artifact downloaded to {artifact_dir}")
+    
+    with open(f'{artifact_dir}/test_names.txt', 'r') as f:
+        test_nouns = {line.strip() for line in f}
 
-    if inference_config.load_lora_from_local:
-        print(f"LOADING LORA WEIGHTS FROM LOCAL {artifact_lora_adaptaters_path}")
-        model.model.pretrained_model.base_model.model = PeftModel.from_pretrained(
+    print(f"Loading test names: {test_nouns}")
+    model.model.pretrained_model.base_model.model = PeftModel.from_pretrained(
         model.model.pretrained_model.base_model.model,
-        artifact_lora_adaptaters_path
-        )
+        artifact_dir
+    )
 
     _, _, test_dataset, _, _, test_loader, _ = get_dataloaders_and_ref_model(
     dataset_class_name = experiment_args.dataset_class_name,

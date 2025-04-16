@@ -315,9 +315,7 @@ class InferenceConfig:
         The number of trials to run inference.
     is_peft_model: bool
         Wheter we are using peft model
-    load_lora_from_local: bool
-        Wheter we are loading lora adaptaters
-    lora_adaptaters_artefact_reference: str 
+    load_lora_from_path_wandb: str 
         Name of the artifact we want to use for LoRA adaptaters
 
 
@@ -328,8 +326,7 @@ class InferenceConfig:
     seed: int
     num_trials: int
     is_peft_model: bool
-    load_lora_from_local: bool
-    lora_adaptaters_artefact_reference: str #Path to the lora model to load
+    load_lora_from_path_wandb: str #Path to the lora model to load
 
 
 
