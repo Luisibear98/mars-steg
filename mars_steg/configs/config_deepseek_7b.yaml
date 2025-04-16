@@ -1,7 +1,7 @@
 Model:
   model_name: "GenPRM/GenPRM-7B"  # The model name #"GenPRM/GenPRM-7B"  
   model_save_path: "./experiments/models"  # The path to save the model
-  load_precision_mode: "4bits" # Options: ["4bits","8bits","full"]
+  load_precision_mode: "full" # Options: ["4bits","8bits","full"]
   lora: true # false
   lora_r: 8
   lora_alpha: 16
@@ -25,7 +25,7 @@ Train:
   num_train_epochs: 10  # The number of training epochs
   num_eval_episodes: 10  # The number of evaluation episodes
   save_frequency: 50  # The frequency to save the model relative to the number of training data batches
-  ppo_epochs: 1  # The number of PPO epochs
+  ppo_epochs: 10  # The number of PPO epochs
   train_proportion : 0.95  # The proportion of the training data
   validation_proportion : 0.05  # The proportion of the validation data (out of left data after training data split)
   number_shared_layers_for_ref_model: 30 # The number of shared layers for the reference model in PPO RLHF
@@ -43,7 +43,7 @@ Train:
   lora_unload_measurement : False # wheter to use the lora unloading measurement
   use_temporal_penalization: True #Wheter to use local penalization on unwanted tokens
   penalisation_class_kwargs: {}
-  whiten_reward: False
+  whiten_reward: True
 
 Generation:
   min_length: 0
