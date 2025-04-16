@@ -154,7 +154,6 @@ def train(ppo_config, model_config, optimizer_config, train_config, generation_c
         overall_extracted = 0
         overall_failed = 0
 
-        if not experiment_args.test_only:
 
         if not experiment_args.test_only:
             for batch_prompt_datas in tqdm(train_loader):
