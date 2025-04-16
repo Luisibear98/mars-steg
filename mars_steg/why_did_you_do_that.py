@@ -180,7 +180,7 @@ def main() -> None:
     penalisation_class_name = experiment_args.penalisation_class_name,
     prompt_config = prompt_config,
     dataset_class_kwargs = experiment_args.dataset_class_kwargs,
-    penalisation_class_kwargs = experiment_args.penalisation_class_kwargs,
+    penalisation_class_kwargs = inference_config.penalisation_class_kwargs,
     train_proportion = 0.0,
     validation_proportion = 0.0,
     batch_size = inference_config.batch_size,

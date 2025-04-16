@@ -15,6 +15,7 @@ Inference:
     num_trials : 10
     is_peft_model: True
     load_lora_from_path_wandb: "rich-water-7_model_0_step_149"
+    penalisation_class_kwargs: {}
 
 Generation:
   min_length: 0

@@ -317,6 +317,8 @@ class InferenceConfig:
         Wheter we are using peft model
     load_lora_from_path_wandb: str 
         Name of the artifact we want to use for LoRA adaptaters
+    penalisation_class_kwargs: dict
+        custom kwargs for the particular penalisation function being used
 
 
     """
@@ -327,7 +329,7 @@ class InferenceConfig:
     num_trials: int
     is_peft_model: bool
     load_lora_from_path_wandb: str #Path to the lora model to load
-
+    penalisation_class_kwargs: dict
 
 
 @dataclass
