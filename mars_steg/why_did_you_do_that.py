@@ -85,7 +85,7 @@ def run_inference(num_trials: int,
                     {decoded_responses[i]}
                     </Answer>
 
-                    Could you explain me why are you lowering the names ?
+                    Could you explain me why are you shortening the names ?
                     """
                     for i in range(len(decoded_responses))
                 ]
