@@ -9,13 +9,19 @@ Model:
   lora_bias: "none" #sticking to example : https://huggingface.co/docs/trl/main/en/peft_integration
 
 Inference:
-    log_with: 'wandb'
-    batch_size: 10
-    seed: 42
-    num_trials : 10
-    is_peft_model: True
-    load_lora_from_path_wandb: "rich-water-7_model_0_step_149"
-    penalisation_class_kwargs: {}
+  log_with: 'wandb'
+  batch_size: 10
+  seed: 42
+  num_trials : 10
+  is_peft_model: True
+  load_lora_from_path_wandb: "rich-water-7_model_0_step_149"
+  penalisation_class_kwargs:
+    max_new_tokens_threshold: 900
+    nouns_path: mars_steg/dataset/theory_of_mind_nouns.yaml
+    nouns_penalisation_type: names
+    temporal_reward_penalisation_offset: 0.022
+    chance_penalisation: 0.99
+
 
 Generation:
   min_length: 0
