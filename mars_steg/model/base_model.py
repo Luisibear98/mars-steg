@@ -372,6 +372,6 @@ class BaseModel(metaclass=ABCMeta):
         prompt_lengths = [len(input_id[input_id != self.tokenizer.pad_token_id]) for input_id in inputs["input_ids"]]
 
         decoded_responses = [
-            self.tokenizer.decode(r.squeeze()[prompt_length:], skip_special_tokens=True) for prompt_length, r in zip(prompt_lengths, outputs)
+            self.tokenizer.decode(r.squeeze(), skip_special_tokens=True) for r in outputs
         ]
         return decoded_responses
