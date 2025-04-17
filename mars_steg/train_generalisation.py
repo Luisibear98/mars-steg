@@ -101,7 +101,7 @@ def train(ppo_config, model_config, optimizer_config, train_config, generation_c
         training_model = model,
         override_create_ref_model = train_config.create_ref_model,
         number_shared_layers_for_ref_model = train_config.number_shared_layers_for_ref_model,
-        test_train_split_kwargs={'mode': 'unseen_name'},
+        test_train_split_kwargs={'mode': experiment_args.penalisation_class_kwargs["mode"]},
         device_map=device_map
     )
 
