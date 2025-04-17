@@ -186,7 +186,10 @@ def main() -> None:
     batch_size = inference_config.batch_size,
     training_model = model,
     override_create_ref_model = False,
-    test_train_split_kwargs={'mode': 'unseen_name'},
+    test_train_split_kwargs={
+            'mode': 'unseen_nouns',
+            'test_nouns': test_nouns,
+        },
     device_map=device_map
     )
     
