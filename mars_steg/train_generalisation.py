@@ -114,8 +114,8 @@ def train(ppo_config, model_config, optimizer_config, train_config, generation_c
         override_create_ref_model = train_config.create_ref_model,
         number_shared_layers_for_ref_model = train_config.number_shared_layers_for_ref_model,
         test_train_split_kwargs={
-            'mode': 'unseen_nouns',
-            'test_nouns': test_nouns,
+            'mode': experiment_args.penalisation_class_kwargs["mode"],
+            'test_nouns': test_nouns
         },
         device_map=device_map
     )
