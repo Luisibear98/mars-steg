@@ -802,12 +802,8 @@ class PPOTrainer(BaseTrainer):
                 for i, penalization_tensor_pad in enumerate(penalization_tensors_padded)
             ]
 
-            # XXX: 2025.04.16
-            import pdb; pdb.set_trace()
-            example_dict = [(tokeniser.decode(model_inputs["input_ids"][4][i]), penalization_tensors[4][i].item()) for i in range(len(queries[0]),len(model_inputs["input_ids"][4]))]
-            print(example_dict)
-
-
+            # example_dict = [(tokeniser.decode(model_inputs["input_ids"][4][i]), penalization_tensors[4][i].item()) for i in range(len(queries[0]),len(model_inputs["input_ids"][4]))]
+            # print(example_dict)
             
 
             #print("---- AFTER PADDING ----")
