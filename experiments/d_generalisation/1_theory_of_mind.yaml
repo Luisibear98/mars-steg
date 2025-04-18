@@ -8,5 +8,7 @@ penalisation_class_kwargs:
   max_new_tokens_threshold: 900
   nouns_path: mars_steg/dataset/theory_of_mind_nouns.yaml
   nouns_penalisation_type: objects
+  # nouns_penalisation_type: names
   temporal_reward_penalisation_offset: 0.1
   mode: unseen_object
+  # mode: unseen_name

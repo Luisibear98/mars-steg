@@ -125,7 +125,7 @@ class ToMTokenBanTask:
             
             # Mark matched tokens with penalty of 1.0
             for pos in match_positions:
-                penalty_tensor[pos:pos+seq_len] = 1.0
+                penalty_tensor[pos+1:pos+seq_len+1] = 1.0
         
         return penalty_tensor
     
