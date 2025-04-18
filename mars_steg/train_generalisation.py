@@ -138,7 +138,7 @@ def train(ppo_config, model_config, optimizer_config, train_config, generation_c
         "train_generalisation.py is intended to only be used for the LanaguageAspect subclass ToMTokenBanTask"
 
     
-
+    global_steps = 0
     for epoch in range(train_config.num_train_epochs):
 
         print(f'BEGINING EPOCH {epoch}\n\n')
@@ -153,6 +153,7 @@ def train(ppo_config, model_config, optimizer_config, train_config, generation_c
         batch_ticker = 0
         overall_extracted = 0
         overall_failed = 0
+        
 
         if not experiment_args.test_only:
             for batch_prompt_datas in tqdm(train_loader):
@@ -320,8 +321,11 @@ def train(ppo_config, model_config, optimizer_config, train_config, generation_c
                 # Clear CUDA cache if needed.
                 if "cuda" in device_map["main_model"]:
                     torch.cuda.empty_cache() 
-
-                if batch_ticker % train_config.save_frequency == 0:
+                global_steps += len(task_score_list)
+                
+                print(f"Computed steps: {global_steps}")
+                
+                if global_steps % train_config.save_frequency == 0:
                     if ppo_trainer.accelerator.is_main_process:
                         save_path = f"experiment_lora_cache"
                         
@@ -332,9 +336,9 @@ def train(ppo_config, model_config, optimizer_config, train_config, generation_c
                         
                         run_name = f"{wandb_run.name}"
 
-                        print(f"Pushing lora weights to wandb: {run_name}_model_{epoch}_step_{batch_ticker}")
+                        print(f"Pushing lora weights to wandb: {run_name}_model_{epoch}_step_{global_steps}")
                         ppo_trainer.model.pretrained_model.save_pretrained(save_path)
-                        artifact = wandb.Artifact(name=f"{run_name}_model_{epoch}_step_{batch_ticker}", type=f"model")
+                        artifact = wandb.Artifact(name=f"{run_name}_model_{epoch}_step_{global_steps}", type=f"model")
                         artifact.add_dir(save_path)  # Adds the entire folder
                         wandb.log_artifact(artifact)                        
 
