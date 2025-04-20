@@ -76,7 +76,7 @@ def train(ppo_config, model_config, optimizer_config, train_config, generation_c
     if experiment_args.load_lora_from_wandb:
         print(f"LOADING LORA WEIGHTS FROM {experiment_args.load_lora_from_path_wandb}")
         
-        load_dir_wandb = f"{wandb_run.entity}/{wandb_run.project}/{experiment_args.load_lora_from_path_wandb}:latest"
+        load_dir_wandb = f"{wandb_run.entity}/{wandb_run.project}/{experiment_args.load_lora_from_path_wandb}:v0"
         artifact = wandb.use_artifact(load_dir_wandb, type='model')
         artifact_dir = artifact.download()
         print(f"Artifact downloaded to {artifact_dir}")
