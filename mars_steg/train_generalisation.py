@@ -455,6 +455,8 @@ def train(ppo_config, model_config, optimizer_config, train_config, generation_c
                     'non_failed_test_reward': sum(test_composite_reward_list_no_failed) / (len(test_composite_reward_list_no_failed) + epsilon),
                     'test_overall_ratio_failed': test_overall_ratio_failed
                 })
+                if "cuda" in device_map["main_model"]:
+                    torch.cuda.empty_cache() 
                 test_batch_ticker += 1
 
 
@@ -515,9 +517,9 @@ if __name__ == "__main__":
     ####################################################################################################################
     
     if experiment_args.load_lora_from_wandb: #Should We pass the project name as a param?
-        project_name = "MARS-STEGO TEST FINAL"
+        project_name = "MARS-STEGO DEBUG"
     else:
-        project_name = "MARS-STEGO TRAIN FINAL"
+        project_name = "MARS-STEGO DEBUG"
         
     wandb.init(
         project=project_name,
