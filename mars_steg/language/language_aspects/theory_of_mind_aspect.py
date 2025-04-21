@@ -183,7 +183,7 @@ class ToMTokenBanTask:
             if matches_without_space:
                 matched_phrases.update(matches_without_space)
 
-            pattern_with_space = r' ' + re.escape(phrase) + r'\b'
+            pattern_with_space = r'(?<=\s)' + re.escape(phrase) + r'\b'
             matches_with_space = re.findall(pattern_with_space, cot)
             n_string_matches += len(matches_with_space)
             if matches_with_space:
