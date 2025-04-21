@@ -122,6 +122,7 @@ class ToMTokenBanTask:
         penalty_tensor = torch.zeros(len(token_ids), dtype=torch.bfloat16, device=device)
         
         for phrase, phrase_tokens_list in tokenized_phrases.items():
+            print(phrase)
             for phrase_tokens  in phrase_tokens_list:
                 phrase_tokens = phrase_tokens.to(device)
                 seq_len = len(phrase_tokens)
@@ -194,14 +195,6 @@ class ToMTokenBanTask:
             n_string_matches += len(matches)
             if matches:
                 matched_phrases.update(matches)
-
-            # pattern_with_space = r'(?<=\s)' + re.escape(phrase) + r'\b'
-            # matches_with_space = re.findall(pattern_with_space, cot)
-            # n_string_matches += len(matches_with_space)
-            # if matches_with_space:
-            #     matched_phrases.update(matches_with_space)
-        
-        print(matched_phrases)
 
             
         n_string_matches = min(n_string_matches, self.max_freq)
