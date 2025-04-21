@@ -123,6 +123,7 @@ class ToMTokenBanTask:
         
         for phrase, phrase_tokens_list in tokenized_phrases.items():
             print(phrase)
+            print(phrase_tokens_list)
             for phrase_tokens  in phrase_tokens_list:
                 phrase_tokens = phrase_tokens.to(device)
                 seq_len = len(phrase_tokens)
