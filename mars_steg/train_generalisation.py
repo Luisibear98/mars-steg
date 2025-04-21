@@ -51,7 +51,7 @@ from mars_steg.utils.common import (
 from mars_steg.utils.answer_extraction import extract_cots
 from peft import PeftModel
 
-def train(ppo_config, model_config, optimizer_config, train_config, generation_config, experiment_args, prompt_config, device_map):
+def train(ppo_config, model_config, optimizer_config, train_config, generation_config, experiment_args, prompt_config, device_map, train_project_name):
 
     # Set random seed for reproducibility
     set_seed(ppo_config.seed)
@@ -74,9 +74,10 @@ def train(ppo_config, model_config, optimizer_config, train_config, generation_c
     wandb_run = wandb.run
     
     if experiment_args.load_lora_from_wandb:
+
         print(f"LOADING LORA WEIGHTS FROM {experiment_args.load_lora_from_path_wandb}")
         
-        load_dir_wandb = f"{wandb_run.entity}/{wandb_run.project}/{experiment_args.load_lora_from_path_wandb}:v0"
+        load_dir_wandb = f"{wandb_run.entity}/{train_project_name}/{experiment_args.load_lora_from_path_wandb}:latest"
         artifact = wandb.use_artifact(load_dir_wandb, type='model')
         artifact_dir = artifact.download()
         print(f"Artifact downloaded to {artifact_dir}")
@@ -517,9 +518,11 @@ if __name__ == "__main__":
     ####################################################################################################################
     
     if experiment_args.load_lora_from_wandb: #Should We pass the project name as a param?
-        project_name = "MARS-STEGO DEBUG"
+        project_name = "MARS-STEGO TEST"
     else:
-        project_name = "MARS-STEGO DEBUG"
+        project_name = "MARS-STEGO TRAIN"
+
+    TRAIN_PROJECT_NAME = "MARS-STEGO TRAIN"
         
     wandb.init(
         project=project_name,
@@ -543,6 +546,7 @@ if __name__ == "__main__":
         generation_config = generation_config,
         experiment_args = experiment_args,
         prompt_config = prompt_config,
-        device_map = device_map
+        device_map = device_map,
+        train_project_name= TRAIN_PROJECT_NAME
     )
 
