@@ -18,7 +18,7 @@ class ToMTokenBanTask:
     compatible_tasks = {"TheoryOfMindTask"}
     uses_local_neural_overseer = False
     
-    def __init__(self, nouns_path: str, nouns_penalisation_type: str, max_freq=15, 
+    def __init__(self, nouns_path: str, nouns_penalisation_type: str, max_freq=50, 
                  temporal_reward_penalisation_offset: Optional[float] = None, **kwargs):
         """
         Initialize the token ban task.
