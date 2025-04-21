@@ -101,7 +101,7 @@ class ToMTokenBanTask:
                 # Just store the first one:
                 phrase_tokens[phrase] = all_token_variants
                         
-                return phrase_tokens
+        return phrase_tokens
     
     def create_penalisation_tensor(self, token_ids: List[int], 
                                    tokenized_phrases: Dict[str, torch.Tensor],
