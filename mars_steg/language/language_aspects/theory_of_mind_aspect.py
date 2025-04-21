@@ -80,17 +80,28 @@ class ToMTokenBanTask:
         """
         phrase_tokens = {}
         special_tokens = set(tokenizer.all_special_ids)
+
+        whitespace_variants = ['', ' ', '\t', '\n']
         
         for phrase in phrases:
-            # Tokenize the phrase with spaces (different tokens)
-            tokenized = tokenizer(phrase, add_special_tokens=False)['input_ids']
-            # Filter out special tokens
-            cleaned_tokens= [t for t in tokenized if t not in special_tokens]
-            
-            if cleaned_tokens:  # Only store non-empty token sequences
-                phrase_tokens[phrase] = torch.tensor(cleaned_tokens)
+            all_token_variants = []
+
+            for ws in whitespace_variants:
+                text_variant = ws + phrase
+                # Tokenize the phrase with spaces (different tokens)
+                tokenized= tokenizer(text_variant, add_special_tokens=False)['input_ids']
+                # Filter out special tokens
+                cleaned_tokens= [t for t in tokenized if t not in special_tokens]
                 
-        return phrase_tokens
+
+                if cleaned_tokens:
+                    all_token_variants.append(torch.tensor(cleaned_tokens))
+
+            if all_token_variants:
+                # Just store the first one:
+                phrase_tokens[phrase] = all_token_variants
+                        
+                return phrase_tokens
     
     def create_penalisation_tensor(self, token_ids: List[int], 
                                    tokenized_phrases: Dict[str, torch.Tensor],
@@ -110,24 +121,25 @@ class ToMTokenBanTask:
         # Initialize with zeros (no penalty)
         penalty_tensor = torch.zeros(len(token_ids), dtype=torch.bfloat16, device=device)
         
-        for phrase, phrase_tokens in tokenized_phrases.items():
-            phrase_tokens = phrase_tokens.to(device)
-            seq_len = len(phrase_tokens)
-            
-            # Skip if sequence is too short
-            if len(token_tensor) < seq_len:
-                continue
+        for phrase, phrase_tokens_list in tokenized_phrases.items():
+            for phrase_tokens  in phrase_tokens_list:
+                phrase_tokens = phrase_tokens.to(device)
+                seq_len = len(phrase_tokens)
                 
-            # Create windows for matching
-            windows = token_tensor.unfold(0, seq_len, 1)
-            
-            # Find matches
-            matches = (windows == phrase_tokens.unsqueeze(0)).all(dim=1)
-            match_positions = matches.nonzero(as_tuple=True)[0]
-            
-            # Mark matched tokens with penalty of 1.0
-            for pos in match_positions:
-                penalty_tensor[pos+1:pos+seq_len+1] = 1.0
+                # Skip if sequence is too short
+                if len(token_tensor) < seq_len:
+                    continue
+                    
+                # Create windows for matching
+                windows = token_tensor.unfold(0, seq_len, 1)
+                
+                # Find matches
+                matches = (windows == phrase_tokens.unsqueeze(0)).all(dim=1)
+                match_positions = matches.nonzero(as_tuple=True)[0]
+                
+                # Mark matched tokens with penalty of 1.0
+                for pos in match_positions:
+                    penalty_tensor[pos+1:pos+seq_len+1] = 1.0
         
         return penalty_tensor
     
@@ -177,18 +189,20 @@ class ToMTokenBanTask:
         matched_phrases = set()
         
         for phrase in self.penalise_substrings:
-            pattern_without_space = r'\b' + re.escape(phrase) + r'\b'
-            matches_without_space = re.findall(pattern_without_space, cot)
-            n_string_matches += len(matches_without_space)
-            if matches_without_space:
-                matched_phrases.update(matches_without_space)
+            pattern = r'\b' + re.escape(phrase) + r'\b'
+            matches = re.findall(pattern, cot)
+            n_string_matches += len(matches)
+            if matches:
+                matched_phrases.update(matches)
 
-            pattern_with_space = r'(?<=\s)' + re.escape(phrase) + r'\b'
-            matches_with_space = re.findall(pattern_with_space, cot)
-            n_string_matches += len(matches_with_space)
-            if matches_with_space:
-                matched_phrases.update(matches_with_space)
+            # pattern_with_space = r'(?<=\s)' + re.escape(phrase) + r'\b'
+            # matches_with_space = re.findall(pattern_with_space, cot)
+            # n_string_matches += len(matches_with_space)
+            # if matches_with_space:
+            #     matched_phrases.update(matches_with_space)
+        
         print(matched_phrases)
+
             
         n_string_matches = min(n_string_matches, self.max_freq)
         language_penalty = float(n_string_matches / self.max_freq)
