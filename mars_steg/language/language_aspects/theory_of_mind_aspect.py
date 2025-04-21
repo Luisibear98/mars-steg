@@ -152,10 +152,6 @@ class ToMTokenBanTask:
             matches = re.findall(pattern, cot)
             n_string_matches += len(matches)
 
-            pattern = r' ' + re.escape(penalise_substring) + r'\b'
-            matches = re.findall(pattern, cot)
-            n_string_matches += len(matches)
-
         
         # Cap at maximum frequency
         n_string_matches = min(n_string_matches, self.max_freq)
@@ -192,8 +188,8 @@ class ToMTokenBanTask:
             n_string_matches += len(matches_with_space)
             if matches_with_space:
                 matched_phrases.update(matches_with_space)
+        print(matched_phrases)
             
-        
         n_string_matches = min(n_string_matches, self.max_freq)
         language_penalty = float(n_string_matches / self.max_freq)
         score = 1 - language_penalty

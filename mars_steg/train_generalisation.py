@@ -518,11 +518,11 @@ if __name__ == "__main__":
     ####################################################################################################################
     
     if experiment_args.load_lora_from_wandb: #Should We pass the project name as a param?
-        project_name = "MARS-STEGO TEST"
+        project_name = "MARS-STEGO DEBUG"
     else:
-        project_name = "MARS-STEGO TRAIN"
+        project_name = "MARS-STEGO DEBUG"
 
-    TRAIN_PROJECT_NAME = "MARS-STEGO TRAIN"
+    TRAIN_PROJECT_NAME = "MARS-STEGO DEBUG"
         
     wandb.init(
         project=project_name,
