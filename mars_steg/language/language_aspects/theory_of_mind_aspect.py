@@ -82,10 +82,10 @@ class ToMTokenBanTask:
         special_tokens = set(tokenizer.all_special_ids)
         
         for phrase in phrases:
-            # Tokenize the phrase
-            tokenized = tokenizer(" "+ phrase, add_special_tokens=False)['input_ids']
+            # Tokenize the phrase with spaces (different tokens)
+            tokenized = tokenizer(phrase, add_special_tokens=False)['input_ids']
             # Filter out special tokens
-            cleaned_tokens = [t for t in tokenized if t not in special_tokens]
+            cleaned_tokens= [t for t in tokenized if t not in special_tokens]
             
             if cleaned_tokens:  # Only store non-empty token sequences
                 phrase_tokens[phrase] = torch.tensor(cleaned_tokens)
@@ -151,6 +151,11 @@ class ToMTokenBanTask:
             pattern = r'\b' + re.escape(penalise_substring) + r'\b'
             matches = re.findall(pattern, cot)
             n_string_matches += len(matches)
+
+            pattern = r' ' + re.escape(penalise_substring) + r'\b'
+            matches = re.findall(pattern, cot)
+            n_string_matches += len(matches)
+
         
         # Cap at maximum frequency
         n_string_matches = min(n_string_matches, self.max_freq)
@@ -176,11 +181,18 @@ class ToMTokenBanTask:
         matched_phrases = set()
         
         for phrase in self.penalise_substrings:
-            pattern = r'\b' + re.escape(phrase) + r'\b'
-            matches = re.findall(pattern, cot)
-            n_string_matches += len(matches)
-            if matches:
-                matched_phrases.update(matches)
+            pattern_without_space = r'\b' + re.escape(phrase) + r'\b'
+            matches_without_space = re.findall(pattern_without_space, cot)
+            n_string_matches += len(matches_without_space)
+            if matches_without_space:
+                matched_phrases.update(matches_without_space)
+
+            pattern_with_space = r' ' + re.escape(phrase) + r'\b'
+            matches_with_space = re.findall(pattern_with_space, cot)
+            n_string_matches += len(matches_with_space)
+            if matches_with_space:
+                matched_phrases.update(matches_with_space)
+            
         
         n_string_matches = min(n_string_matches, self.max_freq)
         language_penalty = float(n_string_matches / self.max_freq)
