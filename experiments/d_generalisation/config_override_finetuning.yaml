@@ -3,7 +3,7 @@ Train:
   validation_proportion: 0.00  # fails otherwise
   t_weight: 1.0
   l_weight: 0.0
-  use_temporal_penalization: True
+  use_temporal_penalization: False
 
   penalisation_class_kwargs:
     max_new_tokens_threshold: 900
