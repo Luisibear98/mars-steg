@@ -247,6 +247,7 @@ def train(ppo_config, model_config, optimizer_config, train_config, generation_c
                         t_weight=train_config.t_weight,
                         l_weight=train_config.l_weight,
                     )
+                    penalisation_tensor_list = None
                     
 
                 
