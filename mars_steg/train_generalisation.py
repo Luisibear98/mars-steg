@@ -123,11 +123,9 @@ def train(ppo_config, model_config, optimizer_config, train_config, generation_c
         },
         device_map=device_map
     )
-    
-    if experiment_args.load_lora_from_wandb:
-        test_indices = torch.randperm(len(test_dataset)).tolist()
-        test_dataset = Subset(test_dataset, test_indices)
 
+    if experiment_args.load_lora_from_wandb:
+        test_dataset.dataset = test_dataset.dataset.sample(frac=1, random_state=42).reset_index(drop=True)
 
     ppo_trainer = PPOTrainer(
         ppo_config,
