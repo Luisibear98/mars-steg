@@ -50,6 +50,9 @@ from mars_steg.utils.common import (
 
 from mars_steg.utils.answer_extraction import extract_cots
 from peft import PeftModel
+from torch.utils.data import Subset
+
+
 
 def train(ppo_config, model_config, optimizer_config, train_config, generation_config, experiment_args, prompt_config, device_map, train_project_name):
 
@@ -120,6 +123,11 @@ def train(ppo_config, model_config, optimizer_config, train_config, generation_c
         },
         device_map=device_map
     )
+    
+    if experiment_args.load_lora_from_wandb:
+        test_indices = torch.randperm(len(test_dataset)).tolist()
+        test_dataset = Subset(test_dataset, test_indices)
+
 
     ppo_trainer = PPOTrainer(
         ppo_config,
@@ -350,7 +358,8 @@ def train(ppo_config, model_config, optimizer_config, train_config, generation_c
         test_batch_ticker = 0
         test_overall_extracted = 0
         test_overall_failed = 0
-
+        
+        total_test_computed_samples = 0
         with torch.no_grad():
 
             # START EVALUATION
@@ -435,14 +444,16 @@ def train(ppo_config, model_config, optimizer_config, train_config, generation_c
                     test_overall_ratio_failed = 0
                 else:
                     test_overall_ratio_failed = test_overall_extracted/test_overall_failed
-
+                total_test_computed_samples += len(test_composite_reward_list)
                 print("--------")
                 print(f"Test examples rewarded with {test_composite_reward_list}")
                 print(f"Task score: {test_task_score_list}")
                 print(f"Language score: {test_language_score_list}")
+                print(f"Total seen samples: {total_test_computed_samples}")
                 print("--------")
 
                 epsilon = 1e-8  # Small value to prevent division by zero
+                
 
                 wandb.log({
                     'test_epoch': epoch,
@@ -459,6 +470,8 @@ def train(ppo_config, model_config, optimizer_config, train_config, generation_c
                 if "cuda" in device_map["main_model"]:
                     torch.cuda.empty_cache() 
                 test_batch_ticker += 1
+                if total_test_computed_samples > 200:
+                    exit()
 
 
 
