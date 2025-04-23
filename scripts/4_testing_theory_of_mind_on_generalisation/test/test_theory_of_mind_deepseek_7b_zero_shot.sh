@@ -6,6 +6,7 @@ export resume_code="zero_shot"  # e.g. "fluent-vortex-1285_model_0_step_0"
 
 export target_path="experiments/d_generalisation/test_config_cache/1_theory_of_mind_test_${resume_code}.yaml"
 cp experiments/d_generalisation/1_theory_of_mind_test_template.yaml $target_path
+echo "load_lora_from_path_wandb: False" >> $target_path
 
 python -m \
    mars_steg.train_generalisation \
