@@ -530,11 +530,11 @@ if __name__ == "__main__":
     ####################################################################################################################
     
     if experiment_args.load_lora_from_wandb: #Should We pass the project name as a param?
-        project_name = "MARS-STEGO DEBUG"
+        project_name = "MARS-STEGO TEST"
     else:
-        project_name = "MARS-STEGO DEBUG"
+        project_name = "MARS-STEGO TRAIN"
 
-    TRAIN_PROJECT_NAME = "MARS-STEGO DEBUG"
+    TRAIN_PROJECT_NAME = "MARS-STEGO TRAIN"
 
     if experiment_args.load_lora_from_wandb:
         custom_run_name = f"{project_name}_{model_config.model_name}_{experiment_args.load_lora_from_wandb}_{experiment_args.load_lora_from_path_wandb}"
