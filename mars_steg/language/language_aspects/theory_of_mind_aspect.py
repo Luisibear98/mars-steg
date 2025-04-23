@@ -313,9 +313,6 @@ class ToMTokenBanTaskOld(LanguageAspect):
 
     def get_language_score(self, prompt_data):
 
-        if self.chance_penalisation == 1.0:
-            raise ValueError("chance_penalise cannot be 1.0")
-
         # Count equals signs in cot
         cot = prompt_data.extracted_cot
 
@@ -331,10 +328,6 @@ class ToMTokenBanTaskOld(LanguageAspect):
         return  1 - language_penality
 
     def get_language_score_temporal_reward(self, prompt_data, tokenizer: Optional[AutoTokenizer] = None):
-
-        # Count equals signs in cot
-        if self.chance_penalisation == 1.0:
-            raise ValueError("chance_penalise cannot be 1.0")
         
         cot = prompt_data.extracted_cot
 

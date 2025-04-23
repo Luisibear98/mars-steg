@@ -9,7 +9,7 @@ Train:
     nouns_path: mars_steg/dataset/theory_of_mind_nouns.yaml
     nouns_penalisation_type: names
     temporal_reward_penalisation_offset: 0.022
-    chance_penalisation: 0.99
+    chance_penalisation: 1.0
 
 Optimizer:
   optimizer_name: "adam"
