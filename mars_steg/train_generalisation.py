@@ -535,10 +535,16 @@ if __name__ == "__main__":
         project_name = "MARS-STEGO TRAIN"
 
     TRAIN_PROJECT_NAME = "MARS-STEGO TRAIN"
-        
+
+    if experiment_args.load_lora_from_wandb:
+        custom_run_name = f"{project_name}_{model_config.model_name}_{experiment_args.load_lora_from_wandb}_{experiment_args.load_lora_from_path_wandb}"
+    else:
+        custom_run_name = f"{project_name}_{model_config.model_name}_seed_{train_config.seed}"
+
     wandb.init(
         project=project_name,
         entity="luisoso",
+        name=custom_run_name,
         config={
             'ppo_config': ppo_config,
             'model_config': model_config,
@@ -548,7 +554,6 @@ if __name__ == "__main__":
             'generation_config': generation_config,
         }
     )
-
 
     train(
         ppo_config = ppo_config, 
