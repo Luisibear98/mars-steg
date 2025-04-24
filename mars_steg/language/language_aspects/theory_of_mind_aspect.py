@@ -1,4 +1,3 @@
-
 from typing import List, Optional, Set, Dict
 import yaml
 import re
@@ -80,7 +79,6 @@ class ToMTokenBanTask:
         """
         phrase_tokens = {}
         special_tokens = set(tokenizer.all_special_ids)
-
         whitespace_variants = ['', ' ', '\t', '\n']
         
         for phrase in phrases:
