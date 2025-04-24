@@ -7,14 +7,15 @@ Train:
   penalisation_class_kwargs:
     max_new_tokens_threshold: 900
     nouns_path: mars_steg/dataset/theory_of_mind_nouns.yaml
-    nouns_penalisation_type: names
+    nouns_penalisation_type: objects
     temporal_reward_penalisation_offset: 0.022
-    chance_penalisation: 0.99
+    chance_penalisation: 1.0
+    mode: unseen_object
 
 Optimizer:
   optimizer_name: "adam"
-  learning_rate: 1.0e-5
+  learning_rate: 4.0e-5
   weight_decay: 0.01
   adam_epsilon: 1.0e-8
-  warmup_steps: 500
+  warmup_steps: 10
   max_grad_norm: 1.0

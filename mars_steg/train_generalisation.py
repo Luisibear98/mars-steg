@@ -50,8 +50,11 @@ from mars_steg.utils.common import (
 
 from mars_steg.utils.answer_extraction import extract_cots
 from peft import PeftModel
+from torch.utils.data import Subset
 
-def train(ppo_config, model_config, optimizer_config, train_config, generation_config, experiment_args, prompt_config, device_map):
+
+
+def train(ppo_config, model_config, optimizer_config, train_config, generation_config, experiment_args, prompt_config, device_map, train_project_name):
 
     # Set random seed for reproducibility
     set_seed(ppo_config.seed)
@@ -74,9 +77,10 @@ def train(ppo_config, model_config, optimizer_config, train_config, generation_c
     wandb_run = wandb.run
     
     if experiment_args.load_lora_from_wandb:
+
         print(f"LOADING LORA WEIGHTS FROM {experiment_args.load_lora_from_path_wandb}")
         
-        load_dir_wandb = f"{wandb_run.entity}/{wandb_run.project}/{experiment_args.load_lora_from_path_wandb}:latest"
+        load_dir_wandb = f"{wandb_run.entity}/{train_project_name}/{experiment_args.load_lora_from_path_wandb}:latest"
         artifact = wandb.use_artifact(load_dir_wandb, type='model')
         artifact_dir = artifact.download()
         print(f"Artifact downloaded to {artifact_dir}")
@@ -114,11 +118,14 @@ def train(ppo_config, model_config, optimizer_config, train_config, generation_c
         override_create_ref_model = train_config.create_ref_model,
         number_shared_layers_for_ref_model = train_config.number_shared_layers_for_ref_model,
         test_train_split_kwargs={
-            'mode': experiment_args.penalisation_class_kwargs["mode"],
-            'test_nouns': test_nouns
+            'mode': train_config.penalisation_class_kwargs["mode"],
+            'test_nouns': test_nouns,
         },
         device_map=device_map
     )
+
+    if experiment_args.load_lora_from_wandb:
+        test_dataset.dataset = test_dataset.dataset.sample(frac=1, random_state=42).reset_index(drop=True)
 
     ppo_trainer = PPOTrainer(
         ppo_config,
@@ -138,7 +145,7 @@ def train(ppo_config, model_config, optimizer_config, train_config, generation_c
         "train_generalisation.py is intended to only be used for the LanaguageAspect subclass ToMTokenBanTask"
 
     
-
+    global_steps = 0
     for epoch in range(train_config.num_train_epochs):
 
         print(f'BEGINING EPOCH {epoch}\n\n')
@@ -153,6 +160,7 @@ def train(ppo_config, model_config, optimizer_config, train_config, generation_c
         batch_ticker = 0
         overall_extracted = 0
         overall_failed = 0
+        
 
         if not experiment_args.test_only:
             for batch_prompt_datas in tqdm(train_loader):
@@ -239,6 +247,7 @@ def train(ppo_config, model_config, optimizer_config, train_config, generation_c
                         t_weight=train_config.t_weight,
                         l_weight=train_config.l_weight,
                     )
+                    penalisation_tensor_list = None
                     
 
                 
@@ -320,8 +329,11 @@ def train(ppo_config, model_config, optimizer_config, train_config, generation_c
                 # Clear CUDA cache if needed.
                 if "cuda" in device_map["main_model"]:
                     torch.cuda.empty_cache() 
-
-                if batch_ticker % train_config.save_frequency == 0:
+                global_steps += len(task_score_list)
+                
+                print(f"Computed steps: {global_steps}")
+                
+                if global_steps % train_config.save_frequency == 0:
                     if ppo_trainer.accelerator.is_main_process:
                         save_path = f"experiment_lora_cache"
                         
@@ -332,9 +344,9 @@ def train(ppo_config, model_config, optimizer_config, train_config, generation_c
                         
                         run_name = f"{wandb_run.name}"
 
-                        print(f"Pushing lora weights to wandb: {run_name}_model_{epoch}_step_{batch_ticker}")
+                        print(f"Pushing lora weights to wandb: {run_name}_model_{epoch}_step_{global_steps}")
                         ppo_trainer.model.pretrained_model.save_pretrained(save_path)
-                        artifact = wandb.Artifact(name=f"{run_name}_model_{epoch}_step_{batch_ticker}", type=f"model")
+                        artifact = wandb.Artifact(name=f"{run_name}_model_{epoch}_step_{global_steps}", type=f"model")
                         artifact.add_dir(save_path)  # Adds the entire folder
                         wandb.log_artifact(artifact)                        
 
@@ -345,7 +357,8 @@ def train(ppo_config, model_config, optimizer_config, train_config, generation_c
         test_batch_ticker = 0
         test_overall_extracted = 0
         test_overall_failed = 0
-
+        
+        total_test_computed_samples = 0
         with torch.no_grad():
 
             # START EVALUATION
@@ -430,14 +443,16 @@ def train(ppo_config, model_config, optimizer_config, train_config, generation_c
                     test_overall_ratio_failed = 0
                 else:
                     test_overall_ratio_failed = test_overall_extracted/test_overall_failed
-
+                total_test_computed_samples += len(test_composite_reward_list)
                 print("--------")
                 print(f"Test examples rewarded with {test_composite_reward_list}")
                 print(f"Task score: {test_task_score_list}")
                 print(f"Language score: {test_language_score_list}")
+                print(f"Total seen samples: {total_test_computed_samples}")
                 print("--------")
 
                 epsilon = 1e-8  # Small value to prevent division by zero
+                
 
                 wandb.log({
                     'test_epoch': epoch,
@@ -451,7 +466,11 @@ def train(ppo_config, model_config, optimizer_config, train_config, generation_c
                     'non_failed_test_reward': sum(test_composite_reward_list_no_failed) / (len(test_composite_reward_list_no_failed) + epsilon),
                     'test_overall_ratio_failed': test_overall_ratio_failed
                 })
+                if "cuda" in device_map["main_model"]:
+                    torch.cuda.empty_cache() 
                 test_batch_ticker += 1
+                if total_test_computed_samples > 200:
+                    exit()
 
 
 
@@ -499,6 +518,8 @@ if __name__ == "__main__":
         is_peft_model=train_config.is_peft_model,
         init_kl_coef=train_config.init_kl_coef,
         adap_kl_ctrl=train_config.adap_kl_ctrl,
+        whiten_rewards=train_config.whiten_reward,
+        seed=train_config.seed
     )
 
 
@@ -508,14 +529,22 @@ if __name__ == "__main__":
     # SET UP WANDB LOGGING
     ####################################################################################################################
     
-    if experiment_args.load_lora_from_wandb: #Should We pass the project name as a param?
-        project_name = "MARS-STEGO TRAIN"
+    if experiment_args.load_lora_from_wandb or (not model_config.lora and not train_config.create_ref_model): #Should We pass the project name as a param?
+        project_name = "MARS-STEGO DEBUG"
     else:
         project_name = "MARS-STEGO DEBUG"
-        
+
+    TRAIN_PROJECT_NAME = "MARS-STEGO DEBUG"
+
+    if experiment_args.load_lora_from_wandb:
+        custom_run_name = f"{model_config.model_name}_{experiment_args.load_lora_from_wandb}_{experiment_args.load_lora_from_path_wandb}".replace("/","_")
+    else:
+        custom_run_name = f"{model_config.model_name}_seed_{train_config.seed}_zero_shot".replace("/","_")
+
     wandb.init(
         project=project_name,
         entity="luisoso",
+        name=custom_run_name,
         config={
             'ppo_config': ppo_config,
             'model_config': model_config,
@@ -526,7 +555,6 @@ if __name__ == "__main__":
         }
     )
 
-
     train(
         ppo_config = ppo_config, 
         model_config = model_config,
@@ -535,6 +563,7 @@ if __name__ == "__main__":
         generation_config = generation_config,
         experiment_args = experiment_args,
         prompt_config = prompt_config,
-        device_map = device_map
+        device_map = device_map,
+        train_project_name= TRAIN_PROJECT_NAME
     )
 

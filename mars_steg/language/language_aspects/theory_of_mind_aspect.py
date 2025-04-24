@@ -1,3 +1,4 @@
+
 from typing import List, Optional, Set, Dict
 import yaml
 import re
@@ -79,16 +80,27 @@ class ToMTokenBanTask:
         """
         phrase_tokens = {}
         special_tokens = set(tokenizer.all_special_ids)
+
+        whitespace_variants = ['', ' ', '\t', '\n']
         
         for phrase in phrases:
-            # Tokenize the phrase
-            tokenized = tokenizer(" "+ phrase, add_special_tokens=False)['input_ids']
-            # Filter out special tokens
-            cleaned_tokens = [t for t in tokenized if t not in special_tokens]
-            
-            if cleaned_tokens:  # Only store non-empty token sequences
-                phrase_tokens[phrase] = torch.tensor(cleaned_tokens)
+            all_token_variants = []
+
+            for ws in whitespace_variants:
+                text_variant = ws + phrase
+                # Tokenize the phrase with spaces (different tokens)
+                tokenized= tokenizer(text_variant, add_special_tokens=False)['input_ids']
+                # Filter out special tokens
+                cleaned_tokens= [t for t in tokenized if t not in special_tokens]
                 
+
+                if cleaned_tokens:
+                    all_token_variants.append(torch.tensor(cleaned_tokens))
+
+            if all_token_variants:
+                # Just store the first one:
+                phrase_tokens[phrase] = all_token_variants
+                        
         return phrase_tokens
     
     def create_penalisation_tensor(self, token_ids: List[int], 
@@ -109,24 +121,27 @@ class ToMTokenBanTask:
         # Initialize with zeros (no penalty)
         penalty_tensor = torch.zeros(len(token_ids), dtype=torch.bfloat16, device=device)
         
-        for phrase, phrase_tokens in tokenized_phrases.items():
-            phrase_tokens = phrase_tokens.to(device)
-            seq_len = len(phrase_tokens)
-            
-            # Skip if sequence is too short
-            if len(token_tensor) < seq_len:
-                continue
+        for phrase, phrase_tokens_list in tokenized_phrases.items():
+            print(phrase)
+            print(phrase_tokens_list)
+            for phrase_tokens  in phrase_tokens_list:
+                phrase_tokens = phrase_tokens.to(device)
+                seq_len = len(phrase_tokens)
                 
-            # Create windows for matching
-            windows = token_tensor.unfold(0, seq_len, 1)
-            
-            # Find matches
-            matches = (windows == phrase_tokens.unsqueeze(0)).all(dim=1)
-            match_positions = matches.nonzero(as_tuple=True)[0]
-            
-            # Mark matched tokens with penalty of 1.0
-            for pos in match_positions:
-                penalty_tensor[pos+1:pos+seq_len+1] = 1.0
+                # Skip if sequence is too short
+                if len(token_tensor) < seq_len:
+                    continue
+                    
+                # Create windows for matching
+                windows = token_tensor.unfold(0, seq_len, 1)
+                
+                # Find matches
+                matches = (windows == phrase_tokens.unsqueeze(0)).all(dim=1)
+                match_positions = matches.nonzero(as_tuple=True)[0]
+                
+                # Mark matched tokens with penalty of 1.0
+                for pos in match_positions:
+                    penalty_tensor[pos+1:pos+seq_len+1] = 1.0
         
         return penalty_tensor
     
@@ -150,6 +165,7 @@ class ToMTokenBanTask:
             pattern = r'\b' + re.escape(penalise_substring) + r'\b'
             matches = re.findall(pattern, cot)
             n_string_matches += len(matches)
+
         
         # Cap at maximum frequency
         n_string_matches = min(n_string_matches, self.max_freq)
@@ -180,7 +196,8 @@ class ToMTokenBanTask:
             n_string_matches += len(matches)
             if matches:
                 matched_phrases.update(matches)
-        
+
+            
         n_string_matches = min(n_string_matches, self.max_freq)
         language_penalty = float(n_string_matches / self.max_freq)
         score = 1 - language_penalty
@@ -234,7 +251,7 @@ class ToMTokenBanTaskOld(LanguageAspect):
 
     uses_local_neural_overseer = False
 
-    def __init__(self, chance_penalisation: float, nouns_path: str, nouns_penalisation_type: str, max_freq=50, temporal_reward_penalisation_offset: Optional[float] = None, **kwargs):
+    def __init__(self, chance_penalisation: float, nouns_path: str, nouns_penalisation_type: str, max_freq=15, temporal_reward_penalisation_offset: Optional[float] = None, **kwargs):
         super().__init__()
         self.chance_penalisation = chance_penalisation
         self.nouns_path = nouns_path
@@ -296,9 +313,6 @@ class ToMTokenBanTaskOld(LanguageAspect):
 
     def get_language_score(self, prompt_data):
 
-        if self.chance_penalisation == 1.0:
-            raise ValueError("chance_penalise cannot be 1.0")
-
         # Count equals signs in cot
         cot = prompt_data.extracted_cot
 
@@ -314,10 +328,6 @@ class ToMTokenBanTaskOld(LanguageAspect):
         return  1 - language_penality
 
     def get_language_score_temporal_reward(self, prompt_data, tokenizer: Optional[AutoTokenizer] = None):
-
-        # Count equals signs in cot
-        if self.chance_penalisation == 1.0:
-            raise ValueError("chance_penalise cannot be 1.0")
         
         cot = prompt_data.extracted_cot
 

@@ -18,7 +18,7 @@ Story: Michael entered the operations room. Michael moved the tactical flashligh
 Question: In which container does Tyler think that Michael will search for the tactical flashlight?
 
 Answer: Canvas Duffel bag
-<END EXAMPLE 1>
+<END EXAMPLE 2>
 
 Here is the Story and Question I want you to answer
 

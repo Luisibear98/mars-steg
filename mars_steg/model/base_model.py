@@ -159,7 +159,7 @@ class BaseModel(metaclass=ABCMeta):
                 quantization_config=quantization_config
             )
         else:
-            model = AutoModelForCausalLM.from_pretrained(
+            model = AutoModelForCausalLMWithValueHead.from_pretrained(
                 self.model_name,
                 torch_dtype=torch.bfloat16,
                 quantization_config=quantization_config,

@@ -28,6 +28,7 @@ from mars_steg.utils.prompt_data import PromptData
 
 import random
 import yaml
+import re
 
 
 class TheoryOfMindTask(TorchDatasetTask):
@@ -374,12 +375,12 @@ class TheoryOfMindTask(TorchDatasetTask):
 
         elif mode == 'unseen_object':
             assert validation_proportion == 0.0
-            
+
             # get list of objects
             objects: List[str] = self.nouns['objects']
             total_prompts = len(self.dataset)
             target_test_proportion = 1.0 - train_proportion
-            
+
             if test_nouns is None:
 
                 # count how many prompts contain each object
@@ -390,10 +391,10 @@ class TheoryOfMindTask(TorchDatasetTask):
                     # Count prompts that contain each object
                     mask = self.dataset['infilled_story'].str.contains(pattern, regex=True)
                     object_counts[obj] = mask.sum()
-                
+
                 # Calculate proportion of prompts each object appears in
                 object_proportion_of_prompts = {obj: count / total_prompts for obj, count in object_counts.items()}
-                
+
                 # Randomly shuffle objects
                 shuffled_objects = list(object_proportion_of_prompts.keys())
                 random.shuffle(shuffled_objects)
@@ -401,7 +402,7 @@ class TheoryOfMindTask(TorchDatasetTask):
                 # Initialize test and train sets
                 test_objects: List[str] = []
                 test_proportion_sum = 0.0
-                
+
                 # Randomized approach: keep adding randomly selected objects until we reach the target proportion
                 for obj in shuffled_objects:
                     if test_proportion_sum < target_test_proportion:
@@ -409,21 +410,21 @@ class TheoryOfMindTask(TorchDatasetTask):
                         test_proportion_sum += object_proportion_of_prompts[obj]
                     else:
                         break
-                
+
                 # If we've overshot our target by a significant amount, try to remove an object to get closer
                 if test_proportion_sum > target_test_proportion * 1.2:  # 20% tolerance
                     # Try to find an object that, if removed, would bring us closer to target
                     best_distance = test_proportion_sum - target_test_proportion
                     best_object_to_remove = None
-                    
+
                     for obj in test_objects:
                         new_proportion = test_proportion_sum - object_proportion_of_prompts[obj]
                         distance = abs(new_proportion - target_test_proportion)
-                        
+
                         if distance < best_distance:
                             best_distance = distance
                             best_object_to_remove = obj
-                    
+
                     # Remove the object if it improves our proportion
                     if best_object_to_remove:
                         test_objects.remove(best_object_to_remove)
@@ -431,21 +432,21 @@ class TheoryOfMindTask(TorchDatasetTask):
 
             else:
                 test_objects = test_nouns
-                    
+
 
             # Remaining objects go to train set
             train_objects: List[str] = [obj for obj in objects if obj not in test_objects]
-            
+
             # Create masks for splitting the dataset - using regex with word boundaries for accurate matching
             test_mask = self.dataset['infilled_story'].apply(
                 lambda x: any(re.search(r'\b' + re.escape(obj) + r'\b', x) for obj in test_objects)
             )
             train_mask = ~test_mask
-            
+
             # Split dataset according to these masks
             train_dataset = self.dataset[train_mask].copy()
             test_dataset = self.dataset[test_mask].copy()
-            
+
             # Print some statistics to verify the split
             actual_test_proportion = len(test_dataset) / total_prompts
             print(f"Target test proportion: {target_test_proportion:.4f}")
@@ -475,7 +476,7 @@ class TheoryOfMindTask(TorchDatasetTask):
             )
             train_dataset_obj.dataset = train_dataset
             train_dataset_obj.length = len(train_dataset)
-            
+
             test_dataset_obj = TheoryOfMindTask(
                 dataset = self.dataset_name,
                 language_aspect = test_language_aspect,     # Test only on unseen objects
@@ -486,7 +487,7 @@ class TheoryOfMindTask(TorchDatasetTask):
             )
             test_dataset_obj.dataset = test_dataset
             test_dataset_obj.length = len(test_dataset)
-            
+
             return train_dataset_obj, None, test_dataset_obj
 
 ## Helpers ##

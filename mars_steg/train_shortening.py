@@ -392,6 +392,7 @@ if __name__ == "__main__":
         is_peft_model=train_config.is_peft_model,
         init_kl_coef=train_config.init_kl_coef,
         adap_kl_ctrl=train_config.adap_kl_ctrl,
+        seed=train_config.seed
     )
 
 
