@@ -327,6 +327,7 @@ class ExperimentArgs:
     dataset_class_name: str
     penalisation_class_name: str
     dataset_class_kwargs: Dict
+    penalisation_class_kwargs: Dict
     test_only: bool
     load_lora_from_wandb: bool = False
     load_lora_from_path_wandb: Optional[str] = ""
