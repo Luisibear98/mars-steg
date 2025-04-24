@@ -410,6 +410,8 @@ class TrainConfig:
         custom kwargs for the particular penalisation function being used
     t_weight, l_weight: float
         weightings for the task and language loss components. Linear for temporal penalisation, harmonic for non-temporal
+    whiten_reward: bool
+        whether to whiten the reward or not
 
     Notes
     -----
@@ -447,6 +449,7 @@ class TrainConfig:
     penalisation_class_kwargs: dict
     t_weight: float
     l_weight: float
+    whiten_reward: bool
 
 
 
