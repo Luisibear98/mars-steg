@@ -21,3 +21,7 @@ mars_steg.egg-info/
 Docs_presentations/
 logs/
 *Zone.Identifier*
+mars_steg/.DS_Store
+mars_steg/language/.DS_Store
+mars_steg/language/language_aspects/.DS_Store
+.DS_Store
