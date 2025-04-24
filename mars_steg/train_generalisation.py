@@ -118,7 +118,7 @@ def train(ppo_config, model_config, optimizer_config, train_config, generation_c
         override_create_ref_model = train_config.create_ref_model,
         number_shared_layers_for_ref_model = train_config.number_shared_layers_for_ref_model,
         test_train_split_kwargs={
-            'mode': 'unseen_nouns',
+            'mode': train_config.penalisation_class_kwargs["mode"],
             'test_nouns': test_nouns,
         },
         device_map=device_map
@@ -530,16 +530,16 @@ if __name__ == "__main__":
     ####################################################################################################################
     
     if experiment_args.load_lora_from_wandb or (not model_config.lora and not train_config.create_ref_model): #Should We pass the project name as a param?
-        project_name = "MARS-STEGO TEST"
+        project_name = "MARS-STEGO DEBUG"
     else:
-        project_name = "MARS-STEGO TRAIN"
+        project_name = "MARS-STEGO DEBUG"
 
-    TRAIN_PROJECT_NAME = "MARS-STEGO TRAIN"
+    TRAIN_PROJECT_NAME = "MARS-STEGO DEBUG"
 
     if experiment_args.load_lora_from_wandb:
-        custom_run_name = f"{project_name}_{model_config.model_name}_{experiment_args.load_lora_from_wandb}_{experiment_args.load_lora_from_path_wandb}"
+        custom_run_name = f"{model_config.model_name}_{experiment_args.load_lora_from_wandb}_{experiment_args.load_lora_from_path_wandb}".replace("/","_")
     else:
-        custom_run_name = f"{project_name}_{model_config.model_name}_seed_{train_config.seed}_zero_shot"
+        custom_run_name = f"{model_config.model_name}_seed_{train_config.seed}_zero_shot".replace("/","_")
 
     wandb.init(
         project=project_name,
