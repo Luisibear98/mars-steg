@@ -539,7 +539,7 @@ if __name__ == "__main__":
     if experiment_args.load_lora_from_wandb:
         custom_run_name = f"{model_config.model_name}_{experiment_args.load_lora_from_wandb}_{experiment_args.load_lora_from_path_wandb}".replace("/","_")
     else:
-        custom_run_name = f"{model_config.model_name}_seed_{train_config.seed}_zero_shot".replace("/","_")
+        custom_run_name = f"{model_config.model_name}_seed_{train_config.seed}".replace("/","_")
 
     wandb.init(
         project=project_name,
