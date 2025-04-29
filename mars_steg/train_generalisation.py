@@ -125,7 +125,7 @@ def train(ppo_config, model_config, optimizer_config, train_config, generation_c
     )
 
     if experiment_args.load_lora_from_wandb:
-        test_dataset.dataset = test_dataset.dataset.sample(frac=1, random_state=42).reset_index(drop=True)
+        test_dataset.dataset = test_dataset.dataset.sample(frac=1, random_state=ppo_trainer.seed + 42).reset_index(drop=True)
 
     ppo_trainer = PPOTrainer(
         ppo_config,
@@ -539,7 +539,7 @@ if __name__ == "__main__":
     if experiment_args.load_lora_from_wandb:
         custom_run_name = f"{project_name}_{model_config.model_name}_{experiment_args.load_lora_from_wandb}_{experiment_args.load_lora_from_path_wandb}"
     else:
-        custom_run_name = f"{project_name}_{model_config.model_name}_seed_{train_config.seed}_zero_shot"
+        custom_run_name = f"{project_name}_{model_config.model_name}_seed_{train_config.seed}"
 
     wandb.init(
         project=project_name,
