@@ -342,7 +342,7 @@ def train(ppo_config, model_config, optimizer_config, train_config, generation_c
                             for name in test_names:
                                 f.write(name + '\n')
                         
-                        run_name = f"{wandb_run.name}".replace(" ", "_").replace('/','')
+                        run_name = f"{wandb_run.name}".replace(" ", "_").replace("/", "_")
 
                         print(f"Pushing lora weights to wandb: {run_name}_model_{epoch}_step_{global_steps}")
                         ppo_trainer.model.pretrained_model.save_pretrained(save_path)
