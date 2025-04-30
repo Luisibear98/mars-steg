@@ -125,7 +125,7 @@ def train(ppo_config, model_config, optimizer_config, train_config, generation_c
     )
 
     if experiment_args.load_lora_from_wandb:
-        test_dataset.dataset = test_dataset.dataset.sample(frac=1, random_state=ppo_trainer.seed + 42).reset_index(drop=True)
+        test_dataset.dataset = test_dataset.dataset.sample(frac=1, random_state=ppo_config.seed + 42).reset_index(drop=True)
 
     ppo_trainer = PPOTrainer(
         ppo_config,
