@@ -7,7 +7,7 @@ FIXED_ARG=0
 MAX=1592
 STEP=96
 
-for ((i=96; i<=$MAX; i+=$STEP)); do
+for ((i=288; i<=$MAX; i+=$STEP)); do
     echo "Running with argument: $i"
     CUDA_VISIBLE_DEVICES=$CUDA_DEVICE $SCRIPT $MODEL_NAME $FIXED_ARG $i
 done
