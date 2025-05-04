@@ -62,7 +62,10 @@ TEST_NOUN_SET = set(
     "Charlotte", "Daniel", "Elijah", "Emily", "Eric", "Ethan",
     "Gabriel", "Hailey", "Hannah", "Harper", "Julia", "Kayla",
     "Landon", "Lauren", "Lily", "Madison", "Mason", "Matthew",
-    "Mia", "Michael", "Morgan", "Nicholas", "Noah", "Olivia"
+    "Mia", "Michael", "Morgan", "Nicholas", "Noah", "Olivia",
+    "Owen", "Paige", "Parker", "Peyton", "Rebecca", "Riley",
+    "Ryan", "Sadie", "Samantha", "Sara", "Sophia", "Sydney",
+    "Tessa", "Taylor", "Tristan", "Tyler", "Victoria"
     ]
 )
 
