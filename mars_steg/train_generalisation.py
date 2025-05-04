@@ -52,6 +52,20 @@ from mars_steg.utils.answer_extraction import extract_cots
 from peft import PeftModel
 from torch.utils.data import Subset
 
+TEST_NOUN_SET = set(
+    [
+    "Austin", "Kennedy", "Cooper", "William", "James", "Kaitlyn",
+    "Isabella", "Liam", "Bryson", "Evelyn", "Lucas", "Wyatt",
+    "Addison", "Logan",  # ← your 14
+    "Abigail", "Alexander", "Alexis", "Amelia", "Andrew", "Anthony",
+    "Aubrey", "Ava", "Avery", "Benjamin", "Brooklyn", "Caleb",
+    "Charlotte", "Daniel", "Elijah", "Emily", "Eric", "Ethan",
+    "Gabriel", "Hailey", "Hannah", "Harper", "Julia", "Kayla",
+    "Landon", "Lauren", "Lily", "Madison", "Mason", "Matthew",
+    "Mia", "Michael", "Morgan", "Nicholas", "Noah", "Olivia"
+    ]
+)
+
 
 
 def train(ppo_config, model_config, optimizer_config, train_config, generation_config, experiment_args, prompt_config, device_map, train_project_name):
@@ -96,6 +110,8 @@ def train(ppo_config, model_config, optimizer_config, train_config, generation_c
 
     else:
         test_nouns = None
+
+    test_nouns = TEST_NOUN_SET
 
 
     optimizer = get_optimizer(optimizer_config=optimizer_config, model=model.model)
