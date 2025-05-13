@@ -283,7 +283,6 @@ class TheoryOfMindTask(TorchDatasetTask):
                 
                 # Calculate proportion of prompts each name appears in
                 name_proportion_of_prompts = {name: count / total_prompts for name, count in name_counts.items()}
-                print(name_proportion_of_prompts)
                 
                 # Randomly shuffle names
                 shuffled_names = list(name_proportion_of_prompts.keys())
