@@ -1,0 +1,25 @@
+entity_name: luisoso
+train_project_name: MARS-STEGO TRAIN
+test_project_name: MARS-STEGO TEST
+output_dir: logs
+model_name: GenPRM-7B
+seed_to_download:
+- 378
+- 294
+- 168
+- 84
+
+LOGGING_INFO:
+  version: 1
+  formatters:
+    simple:
+      format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+  handlers:
+    console:
+      class: logging.StreamHandler
+      level: INFO
+      formatter: simple
+      stream: ext://sys.stdout
+  root:
+    level: INFO
+    handlers: [console]

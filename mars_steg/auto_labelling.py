@@ -1,7 +1,16 @@
+import logging
+import logging.config
 import os
+from typing import List
+import anthropic
 from anthropic import Anthropic
 import pandas as pd
 import argparse
+from tenacity import stop_after_attempt, wait_exponential, Retrying
+import ray
+
+from tqdm import tqdm
+import yaml
 
 
 PROMPT = (
@@ -54,65 +63,190 @@ USER_PROMPT = (
 
 DEFAULT_SYSTEM_PROMPT = f"{PROMPT}"
 
-temperature = 0.2
-max_tokens = 512
 
-def generate_response_claude(prompt):
-    client = Anthropic(api_key=os.getenv("ANTHROPIC_CAISH_API_KEY"))
-    message = client.messages.create(
-        model="claude-3-7-sonnet-20250219",
-        temperature=temperature,
-        max_tokens=max_tokens,
-        system=DEFAULT_SYSTEM_PROMPT,
-        messages=[
-            {
-                "role": "user",
-                "content": [
-                    {
-                        "type": "text",
-                        "text": prompt
-                    }
-                ]
-            }
-        ]
-    )
-    return message.content[0].text
 
-def main(input_file, output_file):
-    df = pd.read_csv(input_file)
-    results = []
-    for _ , row in df.iterrows():
+def generate_response_claude(prompt, temperature, max_tokens):
+    CLIENT = Anthropic(api_key=os.getenv("ANTHROPIC_CAISH_API_KEY"))
+    
+    # Implementing retry manually without the decorator
+    retrying = Retrying(stop=stop_after_attempt(5), wait=wait_exponential(multiplier=1, min=2, max=10))
+    
+    for attempt in retrying:
+        with attempt:
+            try:
+                message = CLIENT.messages.create(
+                    model="claude-3-7-sonnet-20250219",
+                    temperature=temperature,
+                    max_tokens=max_tokens,
+                    system=DEFAULT_SYSTEM_PROMPT,
+                    messages=[
+                        {
+                            "role": "user",
+                            "content": [
+                                {
+                                    "type": "text",
+                                    "text": prompt
+                                }
+                            ]
+                        }
+                    ]
+                )
+                return message.content[0].text  # Return the generated response
+            except anthropic._exceptions.OverloadedError:
+                response = str(anthropic._exceptions.OverloadedError)
+                raise  # Will trigger retry mechanism in case of overload
+            except Exception as e:
+                response = str(e)
+    return response
+
+def get_label_from_df(df, generation_config, logging_config):
+    LOGGER = setup_logger(logging_config)
+    label_results = []
+    reponse_results = []
+    for _ , row in tqdm(df.iterrows()):
         sample = row["extracted_cot"]
-        if sample is None:
-            results.append("cot extraction failed")
+        extracted_cot_length = row["extracted_cot_token_length"]
+        if sample is None or type(sample) != str:
+            label_results.append("cot extraction failed")
+            reponse_results.append("cot extraction failed")
+            LOGGER.warning(f"COT extraction failed for sample: {sample}")
+            continue
+        if extracted_cot_length <=3:
+            label_results.append("no cot")
+            reponse_results.append("no cot")
+            LOGGER.warning(f"Sample too short for COT labelling: {sample}")
             continue
         prompt = USER_PROMPT + sample
-        response = generate_response_claude(prompt)
+        LOGGER.debug(f"Prompt: {prompt}")
+        response = generate_response_claude(prompt, temperature=generation_config["temperature"], max_tokens=generation_config["max_tokens"])
         try:
             label = response.split("→ Category: ")[1].strip()
-            results.append(label)
+            label_results.append(label)
+            reponse_results.append(response)
         except IndexError:
-            results.append("unexpected response format")
-            print(f"Unexpected response format for sample: {sample}")
+            label_results.append("unexpected response format")
+            reponse_results.append("unexpected response format")
+            LOGGER.warning(f"Unexpected response format for sample: {response}")
             continue
         except Exception as e:
-            print(f"Error processing sample: {sample}, Error: {e}")
-            results.append("error processing sample")
+            LOGGER.warning(f"Error processing sample: {response}, Error: {e}")
+            label_results.append("error processing sample")
+            reponse_results.append("error processing sample")
             continue
-        # Print the response for debugging
-        print(f"Sample: {sample}\nResponse: {response}\n")
-            
-        results.append(response)
+    return label_results, reponse_results
 
-    # Save results to a CSV file
-    df["label"] = results
-    df.to_csv(output_file, index=False)
 
+def setup_logger(logging_config):
+    logging.config.dictConfig(logging_config)
+    return logging.getLogger(__name__)
+
+@ray.remote
+def process_folder(folder, config, logging_config):
+    LOGGER = setup_logger(logging_config)
+    input_dir = config["input_dir"]
+    generation_config = config["generation_config"]
+
+    csv_train_file_folder = os.path.join(input_dir, folder, "train")
+    csv_test_file_folder = os.path.join(input_dir, folder, "test")
+    LOGGER.info(f"Processing folder: {folder}")
+
+    df_train = pd.read_csv(os.path.join(csv_train_file_folder, "merged_data.csv"))
+    train_label_path = os.path.join(csv_train_file_folder, "merged_data_labeled.csv")
+
+    if config["test_only"]:
+        LOGGER.warning(f"Skipping training data labeling for {folder} as test_only is set to True.")
+    elif os.path.exists(train_label_path):
+        LOGGER.warning(f"Labels already exist in the training data for {folder}.")
+    else:
+        LOGGER.info(f"Labels do not exist in the training data for {folder}. Proceeding to label.")
+        train_label_results, train_response_results = get_label_from_df(df_train, generation_config, logging_config)
+        df_train["label"] = train_label_results
+        df_train["response"] = train_response_results
+        df_train.to_csv(train_label_path, index=False)
+        LOGGER.info("Labels for training data have been generated and saved.")
+
+    df_test = pd.read_csv(os.path.join(csv_test_file_folder, "merged_data.csv"))
+    test_label_path = os.path.join(csv_test_file_folder, "merged_data_labeled.csv")
+
+    if os.path.exists(test_label_path):
+        LOGGER.warning(f"Labels already exist in the test data for {folder}.")
+    else:
+        LOGGER.info(f"Labels do not exist in the test data for {folder}. Proceeding to label.")
+        test_label_results, test_response_results = get_label_from_df(df_test, generation_config, logging_config)
+        df_test["label"] = test_label_results
+        df_test["response"] = test_response_results
+        df_test.to_csv(test_label_path, index=False)
+        LOGGER.info("Labels for test data have been generated and saved.")
+
+    LOGGER.info(f"✅ Finished processing folder: {folder}")
+
+def main(config_file):
+    ray.init(ignore_reinit_error=True)
+
+    with open(config_file, "r") as file:
+        config = yaml.safe_load(file)
+
+    logging_config = config['LOGGING_INFO']
+    logger = setup_logger(logging_config)
+    logger.info("Launching parallel labeling using Ray...")
+
+    folders_to_process = config["folders_to_process"]
+    
+    # Launch Ray tasks
+    futures = [process_folder.remote(folder, config, logging_config) for folder in folders_to_process]
+    ray.get(futures)
+
+    logger.info("✅ All folders have been processed.")
+    logger.info("🎉 Script completed successfully.")
+        
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Auto-labeling script for steganography detection.")
-    parser.add_argument("--input_file", type=str, required=True, help="Path to the input JSON file.")
-    parser.add_argument("--output_file", type=str, required=True, help="Path to the output CSV file.")
+    parser.add_argument("--config_file", type=str, required=True, help="Path to the config file.")
     args = parser.parse_args()
 
-    main(args.input_file, args.output_file)
+    main(args.config_file)
+
+
+
+
+# def main(config_file):
+#     with open(config_file, "r") as file:
+#         config = yaml.safe_load(file)
+
+#     global LOGGER
+#     logging.config.dictConfig(config['LOGGING_INFO'])
+#     LOGGER = logging.getLogger(__name__)
+#     LOGGER.info("Starting the script to label steganography detection samples.")
+#     folders_to_process = config["folders_to_process"]
+#     input_dir = config["input_dir"]
+#     for folder in folders_to_process:
+#         csv_train_file_folder = os.path.join(input_dir, folder, "train")
+#         csv_test_file_folder = os.path.join(input_dir, folder, "test")
+#         LOGGER.info(f"Processing folder: {folder}")
+
+#         df_train = pd.read_csv(os.path.join(csv_train_file_folder, "merged_data.csv"))
+#         if os.path.exists(os.path.join(csv_train_file_folder, "merged_data_labeled.csv")):
+#             LOGGER.warning("Labels already exist in the training data.")
+#             pass
+#         else:
+#             LOGGER.info("Labels do not exist in the training data. Proceeding to label.")
+#             train_label_results, train_reponse_results = get_label_from_df(df_train, config["generation_config"])
+#             df_train["label"] = train_label_results
+#             df_train["reponse"] = train_reponse_results
+#             df_train.to_csv(os.path.join(csv_train_file_folder, "merged_data_labeled.csv"), index=False)
+#             LOGGER.info("Labels for training data have been generated and saved.")
+
+#         df_test = pd.read_csv(os.path.join(csv_test_file_folder, "merged_data.csv"))
+#         if os.path.exists(os.path.join(csv_test_file_folder, "merged_data_labeled.csv")):
+#             LOGGER.warning("Labels already exist in the test data.")
+#             continue
+#         else:
+#             LOGGER.info("Labels do not exist in the test data. Proceeding to label.")
+#             test_label_results, test_reponse_results = get_label_from_df(df_test, config["generation_config"])
+#             df_test["label"] = test_label_results
+#             df_test["reponse"] = test_reponse_results
+#             df_test.to_csv(os.path.join(csv_test_file_folder, "merged_data_labeled.csv"), index=False)
+#             LOGGER.info("Labels for test data have been generated and saved.")
+#     LOGGER.info("All folders have been processed.")
+#     LOGGER.info("Script completed successfully.")
 
