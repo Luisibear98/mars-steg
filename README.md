@@ -54,7 +54,7 @@ Contributions are welcome! Please follow these steps:
 
 ## Authors
 Created by :
-- [jskaf](https://github.com/jskaf34) 
+
 
 ## Acknowledgments
 🚧 _In Construction_
